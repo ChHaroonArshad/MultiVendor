@@ -53,36 +53,29 @@ export async function registerUser({ name, email, password, role }) {
 
 
 
-
-
-
 export async function verifyEmailToken(token) {
-    if (!token) {
-        throw createApiError(400, "Verification token is missing.");
-    }
+  if (!token) {
+    throw createApiError(400, "Verification token is missing.");
+  }
 
-    const tokenHash = hashToken(token);
-    const user = await User.findOne({ emailVerificationTokenHash: tokenHash }).select(
-        "+emailVerificationExpires"
-    );
+  const tokenHash = hashToken(token);
+  const user = await User.findOne({ emailVerificationTokenHash: tokenHash }).select("+emailVerificationExpires");
 
-    if (!user) {
-        // Covers: wrong token, already-used token (hash was cleared after first use)
-        throw createApiError(400, "This verification link is invalid or has already been used.");
-    }
+  if (!user) {
+    throw createApiError(400, "This verification link is invalid or has already been used.");
+  }
+  if (user.emailVerificationExpires < new Date()) {
+    throw createApiError(400, "This verification link has expired. Please request a new one.");
+  }
 
-    if (user.emailVerificationExpires < new Date()) {
-        throw createApiError(400, "This verification link has expired. Please request a new one.");
-    }
+  user.isEmailVerified = true;
+  user.emailVerificationTokenHash = undefined;
+  user.emailVerificationExpires = undefined;
+  await user.save();
 
-    user.isEmailVerified = true;
-    user.emailVerificationTokenHash = undefined;
-    user.emailVerificationExpires = undefined;
-    await user.save();
-
-    return user;
+  const { accessToken, refreshToken } = await createSession(user);
+  return { user, accessToken, refreshToken };
 }
-
 export async function resendVerificationEmail(email) {
     const user = await User.findOne({ email });
 

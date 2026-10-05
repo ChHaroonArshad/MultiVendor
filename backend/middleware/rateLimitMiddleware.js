@@ -89,3 +89,11 @@ export const googleAuthLimiter = rateLimit({
   legacyHeaders: false,
   handler: (req, res, next) => next(createApiError(429, "Too many sign-in attempts. Please try again later.")),
 });
+
+export const createProductLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 100, // generous — a seller may upload several products in one session
+  standardHeaders: true,
+  legacyHeaders: false,
+  handler: (req, res, next) => next(createApiError(429, "Too many product submissions. Please try again later.")),
+});

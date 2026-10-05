@@ -13,6 +13,16 @@ import { loginUser } from "../services/authService.js";
 import { env } from "../config/env.js";
 
 
+import { setPendingSignupCookie, clearPendingSignupCookie } from "../utils/cookieUtils.js";
+import { getPendingSignup, finalizeGoogleSignup } from "../services/googleAuthService.js";
+
+
+const ROLE_HOME = {
+  customer: "/customer",
+  seller: "/seller",
+  admin: "/admin",
+};
+
 export const registerController = asyncHandler(async (req, res) => {
   const user = await registerUser(req.body);
   sendSuccessResponse(res, 201, "Registration successful. Please check your email to verify your account.", { user });
@@ -20,10 +30,10 @@ export const registerController = asyncHandler(async (req, res) => {
 
 
 export const verifyEmailController = asyncHandler(async (req, res) => {
-  await verifyEmailToken(req.query.token);
-  sendSuccessResponse(res, 200, "Email verified successfully.");
+  const { user, accessToken, refreshToken } = await verifyEmailToken(req.query.token);
+  setAuthCookies(res, { accessToken, refreshToken });
+  sendSuccessResponse(res, 200, "Email verified successfully.", { user });
 });
-
 export const resendVerificationController = asyncHandler(async (req, res) => {
   await resendVerificationEmail(req.body.email);
   sendSuccessResponse(
@@ -112,7 +122,6 @@ export const googleStartController = asyncHandler(async (req, res) => {
   res.redirect(url);
 });
 
-
 export const googleCallbackController = asyncHandler(async (req, res) => {
   const stateCookie = req.cookies.oauthState;
   clearOAuthStateCookie(res);
@@ -122,18 +131,39 @@ export const googleCallbackController = asyncHandler(async (req, res) => {
   }
 
   try {
-    const { user, accessToken, refreshToken } = await completeGoogleLogin({
+    const result = await completeGoogleLogin({
       code: req.query.code,
       state: req.query.state,
       stateCookie,
     });
-    setAuthCookies(res, { accessToken, refreshToken });
 
-    const to = user.role === "seller" ? "/dashboard/seller" : "/dashboard";
+    // Brand-new Google user: they must choose a role before an account exists
+    if (result.needsRole) {
+      setPendingSignupCookie(res, result.pendingToken);
+      return res.redirect(`${env.clientUrl}/select-role`);
+    }
+
+    setAuthCookies(res, { accessToken: result.accessToken, refreshToken: result.refreshToken });
+    const to = ROLE_HOME[result.user.role] || ROLE_HOME.customer;
     res.redirect(`${env.clientUrl}/success?message=${encodeURIComponent("Signed in with Google")}&to=${to}`);
   } catch (err) {
     if (!err.isApiError) console.error(err);
     const code = err.statusCode === 403 ? "google_forbidden" : "google_failed";
     res.redirect(`${env.clientUrl}/login?error=${code}`);
   }
+});
+
+export const googlePendingController = asyncHandler(async (req, res) => {
+  const pending = await getPendingSignup(req.cookies.pendingSignup);
+  sendSuccessResponse(res, 200, "Pending sign-up found", { pending });
+});
+
+export const googleCompleteController = asyncHandler(async (req, res) => {
+  const { user, accessToken, refreshToken } = await finalizeGoogleSignup({
+    token: req.cookies.pendingSignup,
+    role: req.body.role,
+  });
+  clearPendingSignupCookie(res);
+  setAuthCookies(res, { accessToken, refreshToken });
+  sendSuccessResponse(res, 201, "Account created successfully", { user });
 });

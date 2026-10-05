@@ -1,10 +1,14 @@
+// frontend/src/pages/auth/VerifyEmailPage.jsx
 import { useEffect, useRef, useState } from "react";
 import { useSearchParams, useNavigate, Link } from "react-router-dom";
 import { Navbar } from "../../components/Navbar";
+import { useAuth } from "../../hooks/useAuth";
+import { getHomeForRole } from "../../utils/roleUtils";
 
 export function VerifyEmailPage() {
     const [searchParams] = useSearchParams();
     const navigate = useNavigate();
+    const { signIn } = useAuth();
     const token = searchParams.get("token");
 
     const [status, setStatus] = useState(token ? "verifying" : "pending");
@@ -12,18 +16,18 @@ export function VerifyEmailPage() {
     const [resendEmail, setResendEmail] = useState("");
     const [resendStatus, setResendStatus] = useState("idle");
 
-    const hasVerified = useRef(false); // survives StrictMode's double-invocation
+    const hasVerified = useRef(false);
 
     useEffect(() => {
         if (!token) return;
-        if (hasVerified.current) return; // already fired once for this token — skip
+        if (hasVerified.current) return;
         hasVerified.current = true;
 
         async function verify() {
             try {
-                const res = await fetch(
-                    `${import.meta.env.VITE_API_URL}/auth/verify-email?token=${encodeURIComponent(token)}`
-                );
+                const res = await fetch(`${import.meta.env.VITE_API_URL}/auth/verify-email?token=${encodeURIComponent(token)}`, {
+                    credentials: "include",
+                });
                 const data = await res.json();
 
                 if (!res.ok) {
@@ -32,21 +36,25 @@ export function VerifyEmailPage() {
                     return;
                 }
 
+                const user = data.data.user;
+                signIn(user);
                 setStatus("success");
+
+                const destination = getHomeForRole(user.role);
                 setTimeout(() => {
-                    navigate("/success?message=" + encodeURIComponent("Email verified successfully") + "&to=/login");
-                }, 2000);
+                    navigate(
+                        `/success?message=${encodeURIComponent("Email verified successfully")}&to=${encodeURIComponent(destination)}`,
+                        { replace: true }
+                    );
+                }, 1500);
             } catch {
                 setStatus("error");
                 setErrorMessage("Unable to reach the server. Please try again.");
             }
         }
-
         verify();
-    }, [token, navigate]);
+    }, [token, navigate, signIn]);
 
-
-    
     const handleResend = async (e) => {
         e.preventDefault();
         setResendStatus("sending");
@@ -57,7 +65,7 @@ export function VerifyEmailPage() {
                 body: JSON.stringify({ email: resendEmail }),
             });
             await res.json();
-            setResendStatus("sent"); // generic outcome either way — don't leak account existence
+            setResendStatus("sent");
         } catch {
             setResendStatus("idle");
         }
@@ -68,14 +76,12 @@ export function VerifyEmailPage() {
             <Navbar />
             <div className="flex-1 flex items-center justify-center p-4 sm:p-8">
                 <div className="w-full max-w-md bg-white rounded-3xl shadow-sm border border-[#E5E5E5] p-10 text-center animate-fade-slide-up">
-
                     {status === "pending" && (
                         <>
                             <h1 className="text-xl font-serif text-[#111111] mb-2">Check your inbox</h1>
                             <p className="text-sm text-[#6B6B6B] mb-6">
                                 We've sent a verification link to your email. Click it to activate your account.
                             </p>
-
                             {resendStatus === "sent" ? (
                                 <p className="text-sm text-emerald-600 mb-4">
                                     If that account exists and isn't verified, a new link is on its way.
@@ -83,26 +89,19 @@ export function VerifyEmailPage() {
                             ) : (
                                 <form onSubmit={handleResend} className="flex flex-col gap-3 mb-4">
                                     <input
-                                        type="email"
-                                        required
-                                        placeholder="Didn't get it? Re-enter your email"
-                                        value={resendEmail}
-                                        onChange={(e) => setResendEmail(e.target.value)}
+                                        type="email" required placeholder="Didn't get it? Re-enter your email"
+                                        value={resendEmail} onChange={(e) => setResendEmail(e.target.value)}
                                         className="w-full px-4 py-3 rounded-full border border-[#E5E5E5] text-sm bg-[#FAFAFA] focus:outline-none focus:ring-2 focus:ring-[#C9A227]/15 focus:border-[#C9A227]"
                                     />
                                     <button
-                                        type="submit"
-                                        disabled={resendStatus === "sending"}
+                                        type="submit" disabled={resendStatus === "sending"}
                                         className="w-full bg-[#111111] text-white py-3 rounded-full text-sm font-medium hover:opacity-90 transition-all duration-200 disabled:opacity-50"
                                     >
                                         {resendStatus === "sending" ? "Sending..." : "Resend verification email"}
                                     </button>
                                 </form>
                             )}
-
-                            <Link to="/login" className="text-sm text-[#C9A227] hover:underline underline-offset-2">
-                                Return to login
-                            </Link>
+                            <Link to="/login" className="text-sm text-[#C9A227] hover:underline underline-offset-2">Return to login</Link>
                         </>
                     )}
 
@@ -117,7 +116,7 @@ export function VerifyEmailPage() {
                     {status === "success" && (
                         <>
                             <h1 className="text-xl font-serif text-[#111111] mb-2">Email verified 🎉</h1>
-                            <p className="text-sm text-[#6B6B6B]">Redirecting you to sign in...</p>
+                            <p className="text-sm text-[#6B6B6B]">Taking you to your dashboard...</p>
                         </>
                     )}
 
@@ -125,7 +124,6 @@ export function VerifyEmailPage() {
                         <>
                             <h1 className="text-xl font-serif text-[#111111] mb-2">Verification failed</h1>
                             <p className="text-sm text-[#6B6B6B] mb-6">{errorMessage}</p>
-
                             {resendStatus === "sent" ? (
                                 <p className="text-sm text-emerald-600 mb-4">
                                     If that account exists and isn't verified, a new link is on its way.
@@ -133,26 +131,19 @@ export function VerifyEmailPage() {
                             ) : (
                                 <form onSubmit={handleResend} className="flex flex-col gap-3 mb-4">
                                     <input
-                                        type="email"
-                                        required
-                                        placeholder="you@example.com"
-                                        value={resendEmail}
-                                        onChange={(e) => setResendEmail(e.target.value)}
+                                        type="email" required placeholder="you@example.com"
+                                        value={resendEmail} onChange={(e) => setResendEmail(e.target.value)}
                                         className="w-full px-4 py-3 rounded-full border border-[#E5E5E5] text-sm bg-[#FAFAFA] focus:outline-none focus:ring-2 focus:ring-[#C9A227]/15 focus:border-[#C9A227]"
                                     />
                                     <button
-                                        type="submit"
-                                        disabled={resendStatus === "sending"}
+                                        type="submit" disabled={resendStatus === "sending"}
                                         className="w-full bg-[#111111] text-white py-3 rounded-full text-sm font-medium hover:opacity-90 transition-all duration-200 disabled:opacity-50"
                                     >
                                         {resendStatus === "sending" ? "Sending..." : "Resend verification email"}
                                     </button>
                                 </form>
                             )}
-
-                            <Link to="/login" className="text-sm text-[#C9A227] hover:underline underline-offset-2">
-                                Return to login
-                            </Link>
+                            <Link to="/login" className="text-sm text-[#C9A227] hover:underline underline-offset-2">Return to login</Link>
                         </>
                     )}
                 </div>

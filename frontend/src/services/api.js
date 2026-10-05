@@ -1,6 +1,5 @@
 const BASE_URL = import.meta.env.VITE_API_URL;
 
-// Endpoints where a 401 means "bad input/credentials", not "session expired"
 const NO_REFRESH_PATHS = [
   "/auth/login",
   "/auth/register",
@@ -9,12 +8,12 @@ const NO_REFRESH_PATHS = [
   "/auth/reset-password",
   "/auth/verify-email",
   "/auth/resend-verification",
+  "/auth/google",
 ];
 
-let refreshPromise = null; // all simultaneous 401s share ONE refresh call
+let refreshPromise = null;
 let sessionExpiredHandler = null;
 
-// AuthContext registers itself here so api.js never imports React code
 export function setSessionExpiredHandler(handler) {
   sessionExpiredHandler = handler;
 }
@@ -33,11 +32,15 @@ function refreshSession() {
 }
 
 export async function apiFetch(path, options = {}) {
+  const isFormData = options.body instanceof FormData;
+
   const request = () =>
     fetch(`${BASE_URL}${path}`, {
       ...options,
-      credentials: "include", // browser attaches the httpOnly cookies automatically
-      headers: { "Content-Type": "application/json", ...options.headers },
+      credentials: "include",
+      headers: isFormData
+        ? { ...options.headers } // let the browser set Content-Type + boundary itself
+        : { "Content-Type": "application/json", ...options.headers },
     });
 
   let res = await request();
@@ -46,7 +49,7 @@ export async function apiFetch(path, options = {}) {
     try {
       await refreshSession();
     } catch {
-      sessionExpiredHandler?.(); // tell the app the session is gone; the app decides what to show
+      sessionExpiredHandler?.();
       return res;
     }
     res = await request();

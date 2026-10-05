@@ -39,3 +39,15 @@ export function setOAuthStateCookie(res, state) {
 export function clearOAuthStateCookie(res) {
   res.clearCookie("oauthState", oauthCookieOptions());
 }
+
+
+
+
+
+export function setPendingSignupCookie(res, token) {
+  res.cookie("pendingSignup", token, { ...oauthCookieOptions(), maxAge: 15 * 60 * 1000 });
+}
+
+export function clearPendingSignupCookie(res) {
+  res.clearCookie("pendingSignup", oauthCookieOptions());
+}

@@ -18,11 +18,15 @@ import { changePasswordLimiter } from "../middleware/rateLimitMiddleware.js";
 import { googleStartController, googleCallbackController } from "../controllers/authController.js";
 import { googleAuthLimiter } from "../middleware/rateLimitMiddleware.js";
 import { roleMiddleware } from "../middleware/roleMiddleware.js";
+import { googlePendingController, googleCompleteController } from "../controllers/authController.js";
+import { completeGoogleSignupSchema } from "../validators/authValidator.js";
 
 const router = express.Router();
 router.get("/admin-check", authMiddleware, roleMiddleware(["admin"]), (req, res) =>
-  sendSuccessResponse(res, 200, "Admin access granted")
+    sendSuccessResponse(res, 200, "Admin access granted")
 );
+router.get("/google/pending", googleAuthLimiter, googlePendingController);
+router.post("/google/complete", googleAuthLimiter, validateMiddleware(completeGoogleSignupSchema), googleCompleteController);
 
 router.post("/register", registerLimiter, validateMiddleware(registerSchema), registerController);
 router.get("/verify-email", verifyEmailLimiter, verifyEmailController);

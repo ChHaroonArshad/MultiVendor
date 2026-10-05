@@ -6,7 +6,10 @@ import { Navbar } from "../components/Navbar";
 import { Link } from "react-router-dom";
 // import { changePassword } from "../services/authApi";
 import { changePassword } from "../services/authApi";
+import { useAuth } from "../hooks/useAuth";
+import { getHomeForRole } from "../utils/roleUtils";
 
+// inside the component:
 const schema = z
     .object({
         currentPassword: z.string().min(1, "Current password is required."),
@@ -37,7 +40,7 @@ export function ChangePasswordPage() {
     const [serverError, setServerError] = useState("");
     const [success, setSuccess] = useState(false);
     const [loading, setLoading] = useState(false);
-
+const { user } = useAuth();
     const {
         register, handleSubmit, reset,
         formState: { errors },
@@ -73,7 +76,7 @@ export function ChangePasswordPage() {
                             <p className="font-medium">Password changed successfully.</p>
                             <p className="text-xs mt-0.5">
                                 Your other devices have been signed out.{" "}
-                                <Link to="/dashboard" className="underline font-medium">Back to dashboard</Link>
+                               <Link to={getHomeForRole(user?.role)} className="underline font-medium">Back to dashboard</Link>
                             </p>
                         </div>
                     )}

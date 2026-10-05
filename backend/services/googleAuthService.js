@@ -2,20 +2,26 @@ import { createRemoteJWKSet, jwtVerify } from "jose";
 import { User } from "../models/user.js";
 import { RefreshToken } from "../models/RefreshToken.js";
 import { OAuthTransaction } from "../models/OAuthTransaction.js";
+import { PendingGoogleSignup } from "../models/PendingGoogleSignup.js";
 import { generateRandomString, generateCodeChallenge } from "../utils/pkceUtils.js";
 import { hashToken } from "../utils/tokenUtils.js";
 import { createApiError } from "../utils/apiError.js";
 import { createSession } from "./authService.js";
 
+const REQUIRED_GOOGLE_ENV = ["GOOGLE_CLIENT_ID", "GOOGLE_CLIENT_SECRET", "GOOGLE_REDIRECT_URI"];
+for (const key of REQUIRED_GOOGLE_ENV) {
+  if (!process.env[key]) {
+    throw new Error(`Missing required environment variable: ${key}`);
+  }
+}
+
 const GOOGLE_AUTH_URL = "https://accounts.google.com/o/oauth2/v2/auth";
 const GOOGLE_TOKEN_URL = "https://oauth2.googleapis.com/token";
 const GOOGLE_JWKS = createRemoteJWKSet(new URL("https://www.googleapis.com/oauth2/v3/certs"));
+const PENDING_SIGNUP_TTL_MS = 15 * 60 * 1000;
+const PENDING_EXPIRED_MESSAGE = "Your Google sign-up session has expired. Please try again.";
 
 export async function createGoogleAuthRequest() {
-  console.log("GOOGLE DEBUG:", {
-  clientId: process.env.GOOGLE_CLIENT_ID,
-  redirectUri: process.env.GOOGLE_REDIRECT_URI,
-});
   const state = generateRandomString();
   const codeVerifier = generateRandomString();
   const nonce = generateRandomString();
@@ -49,47 +55,44 @@ function assertActive(user) {
   return user;
 }
 
-async function findOrCreateGoogleUser({ googleId, email, name }) {
-  // 1. Returning Google user
+// Returns an existing user (a returning Google user, or a local account we safely link),
+// or null when this is a brand-new person who still has to choose a role.
+async function findExistingGoogleUser({ googleId, email }) {
   const byGoogleId = await User.findOne({ googleId });
   if (byGoogleId) return assertActive(byGoogleId);
 
-  // 2. Existing local account with the same email: link it
   const byEmail = await User.findOne({ email }).select("+password");
-  if (byEmail) {
-    assertActive(byEmail);
+  if (!byEmail) return null;
 
-    // Pre-hijacking guard: if the local account's email was never verified, someone
-    // may have registered it with a password they control. Wipe that password and
-    // any old sessions before linking, so only the real Google owner has access.
-    if (!byEmail.isEmailVerified) {
-      byEmail.password = undefined;
-      byEmail.emailVerificationTokenHash = undefined;
-      byEmail.emailVerificationExpires = undefined;
-      await RefreshToken.deleteMany({ user: byEmail._id });
-    }
+  assertActive(byEmail);
 
-    byEmail.googleId = googleId;
-    byEmail.isEmailVerified = true; // Google already verified this email
-    await byEmail.save();
-    return byEmail;
+  // Pre-hijacking guard: if this local account's email was never verified, someone may have
+  // registered it with a password they control. Wipe that password and any sessions first.
+  if (!byEmail.isEmailVerified) {
+    byEmail.password = undefined;
+    byEmail.emailVerificationTokenHash = undefined;
+    byEmail.emailVerificationExpires = undefined;
+    await RefreshToken.deleteMany({ user: byEmail._id });
   }
 
-  // 3. Brand-new user. Role is ALWAYS customer here, never chosen by the client.
-  try {
-    return await User.create({
-      name: (name || email.split("@")[0]).trim().slice(0, 50),
-      email,
-      googleId,
-      role: "customer",
-      isEmailVerified: true,
-    });
-  } catch (err) {
-    if (err.code === 11000) {
-      throw createApiError(409, "Account already exists. Please try signing in again.");
-    }
-    throw err;
-  }
+  byEmail.googleId = googleId;
+  byEmail.isEmailVerified = true; // Google already verified this email
+  await byEmail.save();
+  return byEmail;
+}
+
+async function createPendingSignup({ googleId, email, name }) {
+  await PendingGoogleSignup.deleteMany({ googleId }); // a newer attempt replaces older ones
+
+  const token = generateRandomString();
+  await PendingGoogleSignup.create({
+    tokenHash: hashToken(token),
+    googleId,
+    email,
+    name: name || "",
+    expiresAt: new Date(Date.now() + PENDING_SIGNUP_TTL_MS),
+  });
+  return token; // raw token goes into the cookie; only its hash is stored
 }
 
 export async function completeGoogleLogin({ code, state, stateCookie }) {
@@ -135,11 +138,56 @@ export async function completeGoogleLogin({ code, state, stateCookie }) {
     throw createApiError(403, "Your Google email address is not verified.");
   }
 
-  const user = await findOrCreateGoogleUser({
+  const identity = {
     googleId: payload.sub, // Google's permanent unique ID (emails can change, sub cannot)
     email: payload.email.toLowerCase(),
     name: payload.name,
-  });
+  };
+
+  const existingUser = await findExistingGoogleUser(identity);
+  if (existingUser) {
+    const tokens = await createSession(existingUser);
+    return { needsRole: false, user: existingUser, ...tokens };
+  }
+
+  // Brand-new person: park their identity and let them choose a role first
+  const pendingToken = await createPendingSignup(identity);
+  return { needsRole: true, pendingToken };
+}
+
+// Read-only: lets the role page show "Welcome, name" without consuming the record
+export async function getPendingSignup(token) {
+  const pending = token ? await PendingGoogleSignup.findOne({ tokenHash: hashToken(token) }) : null;
+  if (!pending || pending.expiresAt < new Date()) {
+    throw createApiError(400, PENDING_EXPIRED_MESSAGE);
+  }
+  return { name: pending.name, email: pending.email };
+}
+
+export async function finalizeGoogleSignup({ token, role }) {
+  // Fetch AND delete in one step: a pending sign-up can only be finished once
+  const pending = token
+    ? await PendingGoogleSignup.findOneAndDelete({ tokenHash: hashToken(token) })
+    : null;
+  if (!pending || pending.expiresAt < new Date()) {
+    throw createApiError(400, PENDING_EXPIRED_MESSAGE);
+  }
+
+  let user;
+  try {
+    user = await User.create({
+      name: (pending.name || pending.email.split("@")[0]).trim().slice(0, 50),
+      email: pending.email,
+      googleId: pending.googleId,
+      role, // already limited to customer/seller by Zod in the route
+      isEmailVerified: true,
+    });
+  } catch (err) {
+    if (err.code === 11000) {
+      throw createApiError(409, "An account with this email already exists. Please sign in.");
+    }
+    throw err;
+  }
 
   const tokens = await createSession(user);
   return { user, ...tokens };

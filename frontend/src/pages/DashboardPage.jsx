@@ -2,7 +2,8 @@ import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Navbar } from "../components/Navbar";
 import { useAuth } from "../hooks/useAuth";
-
+// import { useCart } from "../hooks/useCart";
+import { useCart } from "../hooks/useCart";
 export function DashboardPage() {
   const { user, logout } = useAuth();
   const [loggingOut, setLoggingOut] = useState(false);

@@ -28,3 +28,15 @@ export async function logout() {
 export function startGoogleLogin() {
   window.location.href = `${import.meta.env.VITE_API_URL}/auth/google`;
 }
+
+export async function getPendingGoogleSignup() {
+  const data = await parseResponse(await apiFetch("/auth/google/pending"));
+  return data.data.pending;
+}
+
+export async function completeGoogleSignup(role) {
+  const data = await parseResponse(
+    await apiFetch("/auth/google/complete", { method: "POST", body: JSON.stringify({ role }) })
+  );
+  return data.data.user;
+}

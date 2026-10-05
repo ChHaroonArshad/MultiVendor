@@ -6,7 +6,7 @@ import { Navbar } from "../../components/Navbar";
 import { Link, useNavigate, useLocation, useSearchParams } from "react-router-dom";
 import { getHomeForRole, getSafeRedirect } from "../../utils/roleUtils";
 import { startGoogleLogin } from "../../services/authApi";
-import { useAuth } from "../../hooks/useAuth";
+
 
 
 
@@ -27,7 +27,7 @@ export function LoginPage() {
     const [loading, setLoading] = useState(false);
     const navigate = useNavigate();
     const location = useLocation();
-    const { signIn } = useAuth();
+
     const { register, handleSubmit, formState: { errors } } = useForm({ resolver: zodResolver(loginSchema) });
 
     const onSubmit = async (formData) => {
@@ -47,11 +47,14 @@ export function LoginPage() {
             }
 
             const { user } = data.data;
-            signIn(user);
 
-            // Go back to the page they originally wanted, else to their role's home
+            // No signIn() here: /login is guest-only, so setting the user now would bounce them
+            // away before the success page. The success page syncs auth state from the server instead.
             const destination = getSafeRedirect(location.state?.from, getHomeForRole(user.role));
-            navigate("/success?message=" + encodeURIComponent("Signed in successfully") + "&to=" + encodeURIComponent(destination));
+            navigate(
+                "/success?message=" + encodeURIComponent("Signed in successfully") + "&to=" + encodeURIComponent(destination),
+                { replace: true }
+            );
         } catch {
             setServerError("Unable to reach the server. Please try again.");
         } finally {
