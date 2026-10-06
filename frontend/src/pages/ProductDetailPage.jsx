@@ -20,9 +20,8 @@ function ThumbnailRail({ images, activeIndex, onSelect }) {
           key={src + i}
           onClick={() => onSelect(i)}
           aria-label={`View image ${i + 1}`}
-          className={`w-16 h-16 lg:w-20 lg:h-20 shrink-0 rounded-xl overflow-hidden border-2 transition-colors duration-200 ${
-            activeIndex === i ? "border-[#C9A227]" : "border-[#E5E5E5] hover:border-[#C9A227]/50"
-          }`}
+          className={`w-16 h-16 lg:w-20 lg:h-20 shrink-0 rounded-xl overflow-hidden border-2 transition-colors duration-200 ${activeIndex === i ? "border-[#C9A227]" : "border-[#E5E5E5] hover:border-[#C9A227]/50"
+            }`}
         >
           <img src={src} alt="" className="w-full h-full object-cover" />
         </button>
@@ -34,7 +33,8 @@ function ThumbnailRail({ images, activeIndex, onSelect }) {
 export function ProductDetailPage() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { addItem } = useCart();
+  const { addItem, items } = useCart();
+
   const guard = usePurchaseGuard();
 
   const [product, setProduct] = useState(null);
@@ -45,6 +45,10 @@ export function ProductDetailPage() {
   const [descExpanded, setDescExpanded] = useState(false);
   const [openSection, setOpenSection] = useState("specifications");
 
+
+  const alreadyInCart = items.find((i) => i.id === id)?.qty || 0;
+  const remainingStock = product ? Math.max(0, product.stock - alreadyInCart) : 0;
+  const atLimit = remainingStock > 0 && qty >= remainingStock;
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
@@ -56,6 +60,9 @@ export function ProductDetailPage() {
       .finally(() => { if (!cancelled) setLoading(false); });
     return () => { cancelled = true; };
   }, [id]);
+useEffect(() => {
+  if (remainingStock > 0 && qty > remainingStock) setQty(remainingStock);
+}, [remainingStock, qty]);
 
   if (loading) {
     return (
@@ -88,6 +95,7 @@ export function ProductDetailPage() {
   const handleAddToCart = () => guard.guardedAction(() => addItem(product, qty));
   const handleBuyNow = () => guard.guardedAction(() => { addItem(product, qty); navigate("/checkout"); });
 
+
   return (
     <div className="min-h-screen bg-[#FAFAFA]">
       <MarketplaceNavbar />
@@ -104,19 +112,20 @@ export function ProductDetailPage() {
         <div className="grid lg:grid-cols-[auto_1fr_400px] gap-6">
           <ThumbnailRail images={product.gallery} activeIndex={activeIndex} onSelect={setActiveIndex} />
 
-          <div className="rounded-2xl overflow-hidden border border-[#E5E5E5] bg-white aspect-square lg:aspect-auto lg:h-[520px]">
+          <div className="rounded-2xl overflow-hidden border border-[#E5E5E5] bg-white lg:h-[520px] flex items-center justify-center">
             {product.gallery[activeIndex] ? (
               <img
                 key={activeIndex}
                 src={product.gallery[activeIndex]}
                 alt={`${product.name} — view ${activeIndex + 1}`}
-                className="w-full h-full object-cover animate-fade-slide-up"
+                className="w-full h-full object-cover p-4 animate-fade-slide-up"
               />
             ) : (
-              <div className="w-full h-full flex items-center justify-center text-sm text-[#B0B0B0]">No image available</div>
+              <div className="w-full h-full flex items-center justify-center text-sm text-[#B0B0B0]">
+                No image available
+              </div>
             )}
           </div>
-
           <div>
             <h1 className="text-2xl font-serif text-[#111111] mb-2 leading-snug">{product.name}</h1>
             <p className="text-xs text-[#6B6B6B] mb-3">By <span className="text-[#111111] font-medium">{product.seller}</span></p>
@@ -141,41 +150,78 @@ export function ProductDetailPage() {
             )}
             {!isLongDescription && <div className="mb-6" />}
 
+
+
             {product.stock === 0 ? (
-              <p className="text-sm text-red-600 font-medium mb-5">Out of stock</p>
+              // Case 1: Seller ke paas bilkul stock hi nahi — saaf-saaf bata do
+              <div className="mb-5 px-4 py-3 rounded-xl border border-red-200 bg-red-50">
+                <p className="text-sm font-medium text-red-600">Out of Stock</p>
+                <p className="text-xs text-red-500 mt-0.5">This product is currently unavailable from the seller.</p>
+              </div>
+            ) : remainingStock === 0 ? (
+              // Case 2: Stock hai, lekin jitna hai sara pehle se cart mein pada hai
+              <div className="mb-5 px-4 py-3 rounded-xl border border-[#C9A227]/40 bg-[#FBF6E9]">
+                <p className="text-sm font-medium text-[#8a6f14]">All available stock is in your cart</p>
+                <p className="text-xs text-[#8a6f14]/80 mt-0.5">
+                  Only {product.stock} unit{product.stock > 1 ? "s" : ""} of this product exist, and you already have all of them in your cart.
+                </p>
+              </div>
             ) : (
-              <div className="flex items-center gap-3 mb-5">
-                <span className="text-sm text-[#6B6B6B]">Quantity</span>
-                <div className="flex items-center gap-3 border border-[#E5E5E5] rounded-full px-2">
-                  <button onClick={() => setQty((q) => Math.max(1, q - 1))} className="w-8 h-8 text-base text-[#111111]">−</button>
-                  <span className="text-sm w-5 text-center">{qty}</span>
-                  <button onClick={() => setQty((q) => Math.min(product.stock, q + 1))} className="w-8 h-8 text-base text-[#111111]">+</button>
+              // Case 3: Normal — quantity select kar sakte hain, lekin limit pe pohanchte hi batayenge
+              <div className="mb-5">
+                <div className="flex items-center gap-3">
+                  <span className="text-sm text-[#6B6B6B]">Quantity</span>
+                  <div className="flex items-center gap-3 border border-[#E5E5E5] rounded-full px-2">
+                    <button onClick={() => setQty((q) => Math.max(1, q - 1))} className="w-8 h-8 text-base text-[#111111]">−</button>
+                    <span className="text-sm w-5 text-center">{qty}</span>
+                    <button
+                      onClick={() => setQty((q) => Math.min(remainingStock, q + 1))}
+                      disabled={atLimit}
+                      className="w-8 h-8 text-base text-[#111111] disabled:opacity-30 disabled:cursor-not-allowed"
+                    >
+                      +
+                    </button>
+                  </div>
                 </div>
+                {/* YAHI WO LINE HAI JO PEHLE MISSING THI — "+" disable hote hi wajah bhi dikhti hai */}
+                {atLimit && (
+                  <p className="text-xs text-[#8a6f14] mt-2">
+                    You've reached the maximum — only {remainingStock} more available
+                    {alreadyInCart > 0 ? ` (you already have ${alreadyInCart} in your cart)` : ""}.
+                  </p>
+                )}
+                {!atLimit && alreadyInCart > 0 && (
+                  <p className="text-xs text-[#6B6B6B] mt-2">{alreadyInCart} already in your cart.</p>
+                )}
               </div>
             )}
-
             <div className="flex flex-col gap-3 mb-6">
               <button
                 onClick={handleAddToCart}
-                disabled={product.stock === 0}
+                disabled={product.stock === 0 || remainingStock === 0}
                 className="w-full bg-[#111111] text-white py-3 rounded-full text-sm font-medium hover:opacity-90 transition-all duration-200 hover:-translate-y-0.5 disabled:opacity-50 disabled:hover:translate-y-0"
               >
-                {product.stock === 0 ? "Out of Stock" : "Add to Cart"}
+                {product.stock === 0 ? "Out of Stock" : remainingStock === 0 ? "Already in Your Cart (Max)" : "Add to Cart"}
               </button>
               <button
-                onClick={() => guard.guardedAction(() => {})}
+                onClick={() => guard.guardedAction(() => { })}
                 className="w-full border border-[#E5E5E5] text-[#111111] py-3 rounded-full text-sm font-medium hover:border-[#C9A227]/50 transition-all duration-200 flex items-center justify-center gap-2"
               >
                 Add to Wishlist <span>♡</span>
               </button>
             </div>
 
-            {product.stock > 0 && (
+            {/* {remainingStock > 0 && (
+              <button onClick={handleBuyNow} className="w-full text-xs font-medium text-[#C9A227] hover:underline mb-6">
+                Buy Now →
+              </button>
+            )} */}
+
+            {remainingStock > 0 && (
               <button onClick={handleBuyNow} className="w-full text-xs font-medium text-[#C9A227] hover:underline mb-6">
                 Buy Now →
               </button>
             )}
-
             {specEntries.length > 0 && (
               <div className="border-t border-[#E5E5E5]">
                 <button
@@ -205,7 +251,7 @@ export function ProductDetailPage() {
       </div>
 
       <LoginRequiredModal open={guard.guestModalOpen} onClose={guard.closeGuestModal} />
-     <PurchaseBlockModal role={guard.blockedRole} message={guard.sellerMessage} onClose={guard.closeSellerModal} />
+      <PurchaseBlockModal role={guard.blockedRole} message={guard.sellerMessage} onClose={guard.closeSellerModal} />
     </div>
   );
 }

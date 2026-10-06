@@ -9,14 +9,11 @@ function assertValidObjectId(id) {
   }
 }
 
-// Every read goes through this — populates product details AND silently
-// drops any line item whose product no longer exists or is no longer
-// approved+published (seller deleted it, admin revoked it, etc.). This is
-// the real-world equivalent of "item no longer available" cart cleanup.
 async function getOrCreateCart(userId) {
   let cart = await Cart.findOne({ user: userId }).populate({
     path: "items.product",
     select: "name price originalPrice images stock approvalStatus isPublished seller",
+    populate: { path: "seller", select: "name" },
   });
 
   if (!cart) {
@@ -24,6 +21,7 @@ async function getOrCreateCart(userId) {
     cart = await Cart.findById(cart._id).populate({
       path: "items.product",
       select: "name price originalPrice images stock approvalStatus isPublished seller",
+      populate: { path: "seller", select: "name" },
     });
   }
 
@@ -48,8 +46,8 @@ export async function addItem(userId, productId, quantity) {
 
   const product = await Product.findOne({ _id: productId, approvalStatus: "approved", isPublished: true });
   if (!product) throw createApiError(404, "Product not available");
-
-  const cart = await Cart.findOneAndUpdate({ user: userId }, {}, { upsert: true, new: true });
+  if (product.stock === 0) throw createApiError(400, "This product is currently out of stock");
+  const cart = await Cart.findOneAndUpdate({ user: userId }, {}, { upsert: true, returnDocument: "after" });
 
   const existing = cart.items.find((item) => item.product.toString() === productId);
   if (existing) {
@@ -58,12 +56,10 @@ export async function addItem(userId, productId, quantity) {
     cart.items.push({ product: productId, quantity });
   }
 
-  // never let the cart silently hold more than the seller actually has
-  const matchedItem = cart.items.find((item) => item.product.toString() === productId);
-  if (matchedItem.quantity > product.stock) {
-    matchedItem.quantity = product.stock;
-  }
-
+  // No silent capping here anymore. The cart can hold more than current
+  // stock (e.g. stock dropped after the item was added) — the frontend
+  // surfaces that clearly and blocks checkout until the buyer adjusts it
+  // themselves, rather than quietly changing what they asked for.
   await cart.save();
   return getOrCreateCart(userId);
 }
@@ -78,8 +74,7 @@ export async function updateItemQuantity(userId, productId, quantity) {
   const item = cart.items.find((i) => i.product.toString() === productId);
   if (!item) throw createApiError(404, "Item not in cart");
 
-  const product = await Product.findById(productId);
-  item.quantity = product ? Math.min(quantity, product.stock) : quantity;
+  item.quantity = quantity; // same reasoning — no silent cap, Zod already bounds 1-99
 
   await cart.save();
   return getOrCreateCart(userId);
@@ -97,6 +92,6 @@ export async function removeItem(userId, productId) {
 }
 
 export async function clearCart(userId) {
-  const cart = await Cart.findOneAndUpdate({ user: userId }, { items: [] }, { upsert: true, new: true });
+  const cart = await Cart.findOneAndUpdate({ user: userId }, { items: [] }, { upsert: true, returnDocument: "after" });
   return cart;
 }
