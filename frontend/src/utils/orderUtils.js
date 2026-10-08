@@ -1,0 +1,1 @@
+export const shortOrderId = (id) => String(id).slice(-6).toUpperCase();

@@ -7,9 +7,16 @@ async function parseOrThrow(res, fallbackMessage) {
 }
 
 export async function placeOrder(shippingAddress) {
-  const res = await apiFetch("/checkout", {
-    method: "POST",
-    body: JSON.stringify({ shippingAddress }),
-  });
+  const res = await apiFetch("/checkout", { method: "POST", body: JSON.stringify({ shippingAddress }) });
   return parseOrThrow(res, "Failed to place order");
+}
+
+export async function confirmPayment(orderGroupId) {
+  const res = await apiFetch(`/checkout/${orderGroupId}/confirm`, { method: "POST" });
+  return parseOrThrow(res, "Failed to confirm payment");
+}
+
+export async function retryPayment(orderGroupId) {
+  const res = await apiFetch(`/checkout/${orderGroupId}/retry-payment`, { method: "POST" });
+  return parseOrThrow(res, "Failed to start payment retry");
 }

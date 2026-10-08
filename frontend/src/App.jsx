@@ -47,6 +47,8 @@ import { AddProductPage } from "./pages/seller/AddProductPage";
 import { ProductViewPage } from "./pages/seller/ProductViewPage";
 import { EditProductPage } from "./pages/seller/EditProductPage";
 import { ToastProvider } from "./context/ToastContext";
+
+import { SellerOrderDetailPage } from "./pages/seller/SellerOrderDetailPage";
 function App() {
   return (
     <ToastProvider>
@@ -82,6 +84,8 @@ function App() {
                     <Route path="/customer/addresses" element={<AddressesPage />} />
                     <Route path="/customer/notifications" element={<NotificationsPage />} />
                     <Route path="/customer/settings" element={<SettingsPage />} />
+                    <Route path="/customer/orders" element={<CustomerOrdersPage />} />
+                    <Route path="/customer/orders/:orderId" element={<OrderDetailsPage />} />
                   </Route>
                 </Route>
 
@@ -95,6 +99,7 @@ function App() {
                     <Route path="/seller/products/add" element={<AddProductPage />} />
                     <Route path="/seller/products/:id" element={<ProductViewPage />} />
                     <Route path="/seller/products/:id/edit" element={<EditProductPage />} />
+                    <Route path="/seller/orders/:id" element={<SellerOrderDetailPage />} />
                   </Route>
                 </Route>
                 <Route element={<RoleRoute allowedRoles={["admin"]} />}>
