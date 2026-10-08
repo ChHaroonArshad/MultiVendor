@@ -26,12 +26,16 @@
     "mongoose": "^9.10.2",
     "multer": "^2.4.0",
     "nodemailer": "^10.0.10",
+    "stripe": "^23.0.0",
     "zod": "^4.6.5"
   },
   "allowScripts": {
     "bcrypt@6.0.0": true
   },
   "devDependencies": {
-    "nodemon": "^3.1.14"
+    "nodemon": "^1.14.10"
+  },
+  "overrides": {
+    "chokidar": "^3.6.0"
   }
 }

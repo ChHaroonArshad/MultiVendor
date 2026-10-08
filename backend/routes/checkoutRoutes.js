@@ -9,5 +9,7 @@ const router = Router();
 
 router.use(authMiddleware, roleMiddleware(["customer"]));
 router.post("/", validateMiddleware(checkoutSchema), checkoutController.checkout);
+router.post("/:orderGroupId/confirm", checkoutController.confirmPayment);
+router.post("/:orderGroupId/retry-payment", checkoutController.retryPayment);
 
 export default router;

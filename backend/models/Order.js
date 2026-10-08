@@ -35,6 +35,8 @@ const orderSchema = new mongoose.Schema(
     subtotal: { type: Number, required: true },
     status: { type: String, enum: ["pending", "processing", "shipped", "delivered", "cancelled"], default: "pending" },
     paymentStatus: { type: String, enum: ["unpaid", "paid", "refunded"], default: "unpaid" }, // Phase 3's webhook flips this
+    stripePaymentIntentId: { type: String, default: null },
+    stripeRefundId: { type: String, default: null },
   },
   { timestamps: true }
 );

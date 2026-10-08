@@ -12,11 +12,14 @@ import publicProductRoutes from "../routes/publicProductRoutes.js";   // ADD THI
 import cartRoutes from "../routes/cartRoutes.js";
 import checkoutRoutes from "../routes/checkoutRoutes.js";
 import orderRoutes from "../routes/orderRoutes.js";
+import stripeWebhookRoutes from '../routes/stripeWebhookRoutes.js'
+import sellerOrderRoutes from "../routes/sellerOrderRoutes.js";
 // ...
 
-// ...
-// ...
-const app = express();
+
+const app = express()
+
+app.use("/api/v1/webhooks/stripe", stripeWebhookRoutes);
 
 app.use(express.json());
 app.use(helmet());
@@ -27,6 +30,7 @@ app.get("/api/v1/health", (req, res) => {
   res.json({ success: true, message: "API is healthy" });
 });
 app.use("/api/v1/cart", cartRoutes);
+app.use("/api/v1/seller/orders", sellerOrderRoutes);
 
 app.use("/api/v1/auth", authRoutes);
 app.use("/api/v1/seller/products", productRoutes);

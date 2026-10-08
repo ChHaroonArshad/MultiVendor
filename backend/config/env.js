@@ -13,4 +13,6 @@ export const env = {
   cloudinaryCloudName: process.env.CLOUDINARY_CLOUD_NAME,
   cloudinaryApiKey: process.env.CLOUDINARY_API_KEY,
   cloudinaryApiSecret: process.env.CLOUDINARY_API_SECRET,
+  stripeSecretKey: process.env.STRIPE_SECRET_KEY,
+stripeWebhookSecret: process.env.STRIPE_WEBHOOK_SECRET,
 };
