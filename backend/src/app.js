@@ -14,8 +14,12 @@ import checkoutRoutes from "../routes/checkoutRoutes.js";
 import orderRoutes from "../routes/orderRoutes.js";
 import stripeWebhookRoutes from '../routes/stripeWebhookRoutes.js'
 import sellerOrderRoutes from "../routes/sellerOrderRoutes.js";
-// ...
-
+import adminOrderRoutes from "../routes/adminOrderRoutes.js";
+import adminUserRoutes from "../routes/adminUserRoutes.js";
+import adminOverviewRoutes from "../routes/adminOverviewRoutes.js";
+import accountRoutes from "../routes/accountRoutes.js";
+import sellerStoreRoutes from "../routes/sellerStoreRoutes.js";
+import publicStoreRoutes from "../routes/publicStoreRoutes.js";
 
 const app = express()
 
@@ -31,6 +35,14 @@ app.get("/api/v1/health", (req, res) => {
 });
 app.use("/api/v1/cart", cartRoutes);
 app.use("/api/v1/seller/orders", sellerOrderRoutes);
+app.use("/api/v1/admin/orders", adminOrderRoutes);
+app.use("/api/v1/admin/users", adminUserRoutes);
+app.use("/api/v1/admin/overview", adminOverviewRoutes);
+
+app.use("/api/v1/seller/store", sellerStoreRoutes);
+app.use("/api/v1/stores", publicStoreRoutes);
+
+app.use("/api/v1/account", accountRoutes);
 
 app.use("/api/v1/auth", authRoutes);
 app.use("/api/v1/seller/products", productRoutes);

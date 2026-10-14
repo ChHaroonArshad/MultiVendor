@@ -5,6 +5,9 @@ import { Product } from "../models/Product.js";
 import { createApiError } from "../utils/apiError.js";
 import { stripe } from "../config/stripeConfig.js";
 
+import { notifySellersOrdersPaid } from "./notificationService.js";
+
+
 async function restoreStock(items) {
   await Promise.all(
     items.map((item) => Product.findByIdAndUpdate(item.product, { $inc: { stock: item.quantity } }))
@@ -12,6 +15,7 @@ async function restoreStock(items) {
 }
 
 export async function createOrderFromCart(userId, shippingAddress) {
+  await releaseUnpaidHolds(userId);
   const cart = await Cart.findOne({ user: userId }).populate({
     path: "items.product",
     select: "name price originalPrice images stock approvalStatus isPublished seller",
@@ -105,8 +109,8 @@ export async function createOrderFromCart(userId, shippingAddress) {
 
     await Order.updateMany({ orderGroupId }, { stripePaymentIntentId: paymentIntent.id });
 
-    cart.items = [];
-    await cart.save();
+    // cart.items = [];
+    // await cart.save();
   } catch (err) {
     await Promise.all(
       decrementedStock.map(({ productId, quantity }) =>
@@ -145,15 +149,25 @@ export async function getMyOrderGroup(userId, orderGroupId) {
   return { orderGroupId, sellerOrders };
 }
 
-// Only moves orders that are still waiting for payment. An order that was already
-// cancelled (expired) or already paid is never touched again.
+// Only moves orders that are still waiting for payment. The confirm call, the webhook and the
+// cleanup job can all run this for the same checkout, so each order is claimed ATOMICALLY and
+// the seller is emailed only by whichever caller wins the claim (no duplicate emails).
 export async function markOrderGroupPaid(orderGroupId) {
-  await Order.updateMany(
+  const result = await Order.updateMany(
     { orderGroupId, status: "pending", paymentStatus: "unpaid" },
     { paymentStatus: "paid", status: "processing" }
   );
-}
 
+  if (result.modifiedCount > 0) {
+    const orders = await Order.find({ orderGroupId }).select("buyer items.product");
+    const buyerId = orders[0]?.buyer;
+    const boughtIds = orders.flatMap((o) => o.items.map((i) => i.product));
+    if (buyerId && boughtIds.length > 0) {
+      // remove only what was bought; anything added meanwhile stays
+      await Cart.updateOne({ user: buyerId }, { $pull: { items: { product: { $in: boughtIds } } } });
+    }
+  }
+}
 async function cancelUnpaidOrderGroup(orderGroupId) {
   const orders = await Order.find({ orderGroupId, status: "pending", paymentStatus: "unpaid" });
   for (const order of orders) {
@@ -267,4 +281,25 @@ export async function retryPayment(userId, orderGroupId) {
     await Order.updateMany({ orderGroupId }, { stripePaymentIntentId: paymentIntent.id });
   }
 return { orderGroupId, clientSecret: paymentIntent.client_secret, amount };
+}
+
+async function releaseUnpaidHolds(userId) {
+  const groupIds = await Order.distinct("orderGroupId", { buyer: userId, status: "pending", paymentStatus: "unpaid" });
+
+  for (const groupId of groupIds) {
+    try {
+      const sample = await Order.findOne({ orderGroupId: groupId }).select("stripePaymentIntentId");
+      const intentId = sample?.stripePaymentIntentId;
+
+      if (intentId) {
+        const intent = await stripe.paymentIntents.retrieve(intentId);
+        if (intent.status === "succeeded") { await markOrderGroupPaid(groupId); continue; } // never cancel a paid order
+        if (intent.status === "processing") continue; // still settling
+        if (intent.status !== "canceled") await stripe.paymentIntents.cancel(intentId);
+      }
+      await cancelUnpaidOrderGroup(groupId);
+    } catch (err) {
+      console.error(`Could not release hold ${groupId}:`, err.message);
+    }
+  }
 }

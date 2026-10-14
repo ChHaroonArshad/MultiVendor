@@ -1,64 +1,59 @@
 import { useState } from "react";
-import { useAuth } from "../../hooks/useAuth";
+import { Link } from "react-router-dom";
+import { ProfileSection } from "../../components/settings/ProfileSection";
+import { SecuritySection } from "../../components/settings/SecuritySection";
+import { PreferencesSection } from "../../components/settings/PreferencesSection";
+import { DeleteAccountSection } from "../../components/settings/DeleteAccountSection";
 
-const fieldClass = "w-full px-4 py-2.5 rounded-full border border-[#E5E5E5] bg-[#FAFAFA] text-sm focus:outline-none focus:ring-2 focus:ring-[#C9A227]/15 focus:border-[#C9A227] transition-all";
 
-function Toggle({ checked, onChange }) {
-  return (
-    <button type="button" role="switch" aria-checked={checked} onClick={() => onChange(!checked)} className={`w-10 h-6 rounded-full transition-colors duration-200 relative shrink-0 ${checked ? "bg-[#C9A227]" : "bg-[#E5E5E5]"}`}>
-      <span className={`absolute top-0.5 w-5 h-5 bg-white rounded-full shadow transition-all duration-200 ${checked ? "left-[18px]" : "left-0.5"}`} />
-    </button>
-  );
-}
+const TABS = ["Account", "Store Settings", "Notifications", "Security"];
+
+const TOGGLES = [
+  { key: "orders", label: "Order Notifications", description: "New orders and order changes." },
+  { key: "products", label: "Product Notifications", description: "Approval decisions on your products." },
+  { key: "system", label: "System Notifications", description: "Platform announcements and maintenance." },
+];
+
+const DEFAULTS = { orders: true, products: true, system: false };
 
 export function SellerSettingsPage() {
-  const { user } = useAuth();
   const [tab, setTab] = useState("Account");
-  const [notifs, setNotifs] = useState({ orders: true, products: true, system: false });
 
   return (
     <div className="animate-fade-slide-up">
       <h1 className="text-2xl sm:text-3xl font-serif text-[#111111] mb-6">Settings</h1>
+
       <div className="flex gap-2 mb-8 border-b border-[#E5E5E5] overflow-x-auto">
-        {["Account", "Store Settings", "Notifications", "Security"].map((t) => (
+        {TABS.map((t) => (
           <button key={t} onClick={() => setTab(t)} className={`shrink-0 text-sm px-1 pb-3 border-b-2 transition-colors duration-200 ${tab === t ? "border-[#C9A227] text-[#111111] font-medium" : "border-transparent text-[#6B6B6B]"}`}>{t}</button>
         ))}
       </div>
 
-      {tab === "Account" && (
-        <div className="max-w-lg space-y-4">
-          <div><label className="block text-xs font-medium text-[#6B6B6B] mb-1.5">Name</label><input defaultValue={user?.name} className={fieldClass} /></div>
-          <div><label className="block text-xs font-medium text-[#6B6B6B] mb-1.5">Email</label><input defaultValue={user?.email} disabled className={fieldClass + " opacity-60"} /></div>
-          <div><label className="block text-xs font-medium text-[#6B6B6B] mb-1.5">Phone</label><input placeholder="+1 (555) 000-0000" className={fieldClass} /></div>
-          <button className="text-sm font-medium bg-[#111111] text-white px-6 py-2.5 rounded-full hover:opacity-90 transition-all">Save Changes</button>
-        </div>
-      )}
-
+     {tab === "Account" && (
+  <div className="max-w-lg space-y-10">
+    <ProfileSection fields={["phone"]} />
+    <DeleteAccountSection extraWarning="Your store, all of your products and their images will be permanently removed." />
+  </div>
+)}
       {tab === "Store Settings" && (
-        <div className="max-w-lg space-y-4">
-          <div><label className="block text-xs font-medium text-[#6B6B6B] mb-1.5">Store Name</label><input defaultValue="Urban Craft Studio" className={fieldClass} /></div>
-          <div><label className="block text-xs font-medium text-[#6B6B6B] mb-1.5">Store Description</label><textarea rows={3} className="w-full px-4 py-3 rounded-2xl border border-[#E5E5E5] bg-[#FAFAFA] text-sm focus:outline-none focus:ring-2 focus:ring-[#C9A227]/15 focus:border-[#C9A227] transition-all resize-none" /></div>
-          <button className="text-sm font-medium bg-[#111111] text-white px-6 py-2.5 rounded-full hover:opacity-90 transition-all">Save Changes</button>
+        <div className="max-w-lg border border-[#E5E5E5] rounded-2xl p-6 bg-white">
+          <p className="text-sm font-medium text-[#111111] mb-1">Store details</p>
+          <p className="text-xs text-[#6B6B6B] mb-4">Your store name, description, logo and contact details are managed on the Store page.</p>
+          <Link to="/seller/store" className="inline-block text-sm font-medium bg-[#111111] text-white px-6 py-2.5 rounded-full hover:opacity-90 transition-all">
+            Go to Store page
+          </Link>
         </div>
       )}
 
       {tab === "Notifications" && (
-        <div className="max-w-lg space-y-3">
-          {[["orders", "Order Notifications"], ["products", "Product Notifications"], ["system", "System Notifications"]].map(([key, label]) => (
-            <div key={key} className="flex items-center justify-between p-4 border border-[#E5E5E5] rounded-2xl bg-white">
-              <p className="text-sm font-medium text-[#111111]">{label}</p>
-              <Toggle checked={notifs[key]} onChange={(v) => setNotifs((n) => ({ ...n, [key]: v }))} />
-            </div>
-          ))}
+        <div className="max-w-lg">
+          <PreferencesSection toggles={TOGGLES} defaults={DEFAULTS} />
         </div>
       )}
 
       {tab === "Security" && (
-        <div className="max-w-lg space-y-4">
-          <div><label className="block text-xs font-medium text-[#6B6B6B] mb-1.5">Current password</label><input type="password" className={fieldClass} /></div>
-          <div><label className="block text-xs font-medium text-[#6B6B6B] mb-1.5">New password</label><input type="password" className={fieldClass} /></div>
-          <div><label className="block text-xs font-medium text-[#6B6B6B] mb-1.5">Confirm new password</label><input type="password" className={fieldClass} /></div>
-          <button className="text-sm font-medium bg-[#111111] text-white px-6 py-2.5 rounded-full hover:opacity-90 transition-all">Update Password</button>
+        <div className="max-w-lg">
+          <SecuritySection />
         </div>
       )}
     </div>

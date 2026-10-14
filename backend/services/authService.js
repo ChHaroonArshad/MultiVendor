@@ -1,4 +1,4 @@
-import { User } from "../models/user.js";
+import { User } from "../models/User.js";
 import { hashPassword } from "../utils/passwordUtils.js";
 import { sendVerificationEmail } from "./emailService.js";
 import { createApiError } from "../utils/apiError.js";
@@ -10,7 +10,7 @@ import bcrypt from "bcrypt";
 import crypto from "crypto";
 import { signAccessToken, signRefreshToken } from "../utils/jwtUtils.js";
 import { RefreshToken } from "../models/RefreshToken.js";
-
+import { notifyAdminsNewSeller } from "./notificationService.js";
 
 
 
@@ -44,6 +44,7 @@ export async function registerUser({ name, email, password, role }) {
     }
 
     await sendVerificationEmail(user.email, token);
+    if (user.role === "seller") notifyAdminsNewSeller(user); // not awaited
     return user;
 }
 
@@ -120,7 +121,7 @@ if (!user || !user.password) {
   if (!passwordMatches) {
     throw createApiError(401, "Invalid email or password.");
   }
-
+assertAccountNotSuspended(user); 
   if (user.status === "suspended") {
     throw createApiError(403, "Your account has been suspended. Please contact support.");
   }

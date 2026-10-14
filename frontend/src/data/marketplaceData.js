@@ -8,12 +8,15 @@ export const marketplaceStats = [
 ];
 
 export const categories = [
-  { id: "electronics", name: "Electronics", count: "1.2K products", image: img("cat-electronics") },
-  { id: "fashion", name: "Fashion", count: "2.4K products", image: img("cat-fashion") },
-  { id: "shoes", name: "Shoes", count: "860 products", image: img("cat-shoes") },
-  { id: "beauty", name: "Beauty", count: "1.5K products", image: img("cat-beauty") },
-  { id: "home", name: "Home & Kitchen", count: "980 products", image: img("cat-home") },
-  { id: "accessories", name: "Accessories", count: "1.1K products", image: img("cat-accessories") },
+  { id: "Electronics", name: "Electronics" },
+  { id: "Fashion", name: "Fashion" },
+  { id: "Shoes", name: "Shoes" },
+  { id: "Beauty", name: "Beauty" },
+  { id: "Home", name: "Home & Kitchen" },
+  { id: "Accessories", name: "Accessories" },
+  { id: "Sports", name: "Sports" },
+  { id: "Books", name: "Books" },
+  { id: "Gaming", name: "Gaming" },
 ];
 
 export const featuredProducts = [

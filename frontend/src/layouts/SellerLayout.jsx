@@ -3,13 +3,14 @@ import { NavLink, Link, Outlet } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth";
 import { sellerNavItems } from "../config/sellerNav";
 import { useClickOutside } from "../hooks/useClickOutside";
-
+// import { Avatar } from "../../components/ui/Avatar";
+import { Avatar } from "../components/ui/Avatar";
 
 export function SellerLayout() {
   const { user, logout } = useAuth();
   const [menuOpen, setMenuOpen] = useState(false);
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
-const menuRef = useClickOutside(menuOpen, () => setMenuOpen(false));
+  const menuRef = useClickOutside(menuOpen, () => setMenuOpen(false));
   return (
     <div className="min-h-screen bg-[#FAFAFA]">
       <div className="lg:grid lg:grid-cols-[220px_1fr]">
@@ -44,8 +45,8 @@ const menuRef = useClickOutside(menuOpen, () => setMenuOpen(false));
                 <button aria-label="Messages" className="w-10 h-10 rounded-full flex items-center justify-center text-[#6B6B6B] hover:bg-[#FAFAFA] hover:text-[#111111] transition-colors">✉️</button>
 
                 <div className="relative" ref={menuRef}>
-                  <button onClick={() => setMenuOpen((v) => !v)} className="w-9 h-9 rounded-full bg-[#111111] text-white text-xs font-medium flex items-center justify-center">
-                    {user?.name?.charAt(0).toUpperCase() || "S"}
+                  <button onClick={() => setMenuOpen((v) => !v)} className="rounded-full">
+                    <Avatar name={user?.name} src={user?.avatar} size={36} />
                   </button>
                   {menuOpen && (
                     <div className="absolute right-0 mt-2 w-56 bg-white border border-[#E5E5E5] rounded-2xl shadow-md py-2 animate-fade-slide-up z-30">

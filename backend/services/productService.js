@@ -2,6 +2,11 @@ import mongoose from "mongoose";
 import { Product } from "../models/Product.js";
 import { uploadBufferToCloudinary, deleteFromCloudinary } from "../utils/cloudinaryUpload.js";
 import { createApiError } from "../utils/apiError.js";
+import { notifyAdminsNewProduct } from "./notificationService.js";
+
+const asString = (value) => (typeof value === "string" ? value : "");
+const escapeRegex = (text) => text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
 
 function assertValidObjectId(id) {
   if (!mongoose.Types.ObjectId.isValid(id)) {
@@ -26,7 +31,7 @@ export async function createProduct({ sellerId, data, files }) {
     approvalStatus: "pending",
     isPublished: false,
   });
-
+notifyAdminsNewProduct(product); // not awaited
   return product;
 }
 
@@ -117,18 +122,34 @@ export async function setPublishStatus(sellerId, productId, isPublished) {
   return product;
 }
 
-export async function getPublicProducts({ category, search, page = 1, limit = 20 } = {}) {
+export async function getPublicProducts({ category, search, seller, page, limit } = {}) {
   const query = { approvalStatus: "approved", isPublished: true };
-  if (category) query.category = category;
-  if (search) query.name = { $regex: search, $options: "i" };
 
-  const skip = (page - 1) * limit;
+  const categoryValue = asString(category).trim();
+  if (categoryValue) query.category = categoryValue;
+
+  const term = asString(search).trim().slice(0, 100);
+  if (term) query.name = { $regex: escapeRegex(term), $options: "i" };
+
+  const sellerValue = asString(seller).trim();
+  if (sellerValue) {
+    assertValidObjectId(sellerValue);
+    query.seller = sellerValue;
+  }
+
+  const pageNum = Math.max(1, parseInt(asString(page), 10) || 1);
+  const limitNum = Math.min(50, Math.max(1, parseInt(asString(limit), 10) || 20));
+
   const [products, total] = await Promise.all([
-    Product.find(query).populate("seller", "name").sort({ createdAt: -1 }).skip(skip).limit(limit),
+    Product.find(query)
+      .populate("seller", "name")
+      .sort({ createdAt: -1 })
+      .skip((pageNum - 1) * limitNum)
+      .limit(limitNum),
     Product.countDocuments(query),
   ]);
 
-  return { products, total, page, pages: Math.ceil(total / limit) || 1 };
+  return { products, total, page: pageNum, pages: Math.ceil(total / limitNum) || 1 };
 }
 
 export async function getPublicProductById(productId) {

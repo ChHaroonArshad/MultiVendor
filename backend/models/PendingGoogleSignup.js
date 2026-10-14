@@ -6,6 +6,7 @@ const pendingGoogleSignupSchema = new mongoose.Schema({
   email: { type: String, required: true },
   name: { type: String, default: "" },
   expiresAt: { type: Date, required: true },
+  picture: { type: String, default: null },
 });
 
 // MongoDB removes abandoned sign-ups automatically (it checks about once a minute)

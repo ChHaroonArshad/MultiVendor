@@ -97,3 +97,21 @@ export const createProductLimiter = rateLimit({
   legacyHeaders: false,
   handler: (req, res, next) => next(createApiError(429, "Too many product submissions. Please try again later.")),
 });
+
+
+export const avatarUploadLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 10,
+  standardHeaders: true,
+  legacyHeaders: false,
+  handler: (req, res, next) => next(createApiError(429, "Too many photo uploads. Please try again later.")),
+});
+
+
+export const deleteAccountLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 5,
+  standardHeaders: true,
+  legacyHeaders: false,
+  handler: (req, res, next) => next(createApiError(429, "Too many attempts. Please try again later.")),
+});

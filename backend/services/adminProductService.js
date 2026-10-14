@@ -1,7 +1,9 @@
 import mongoose from "mongoose";
 import { Product } from "../models/Product.js";
 import { createApiError } from "../utils/apiError.js";
-import { sendProductRejectionEmail } from "./emailService.js";
+import { notifySellerProductDecision } from "./notificationService.js";
+
+const APPROVAL_STATUSES = ["pending", "approved", "rejected"];
 
 function assertValidObjectId(id) {
   if (!mongoose.Types.ObjectId.isValid(id)) {
@@ -11,8 +13,8 @@ function assertValidObjectId(id) {
 
 export async function getAllProducts(statusFilter) {
   const query = {};
-  if (statusFilter && statusFilter !== "all") {
-    query.approvalStatus = statusFilter;
+  if (typeof statusFilter === "string" && APPROVAL_STATUSES.includes(statusFilter)) {
+    query.approvalStatus = statusFilter; // anything else (including query-string objects) is ignored
   }
   return Product.find(query).populate("seller", "name email").sort({ createdAt: -1 });
 }
@@ -29,18 +31,20 @@ export async function approveProduct(productId) {
   const product = await Product.findById(productId);
   if (!product) throw createApiError(404, "Product not found");
 
+  const wasApproved = product.approvalStatus === "approved";
+
   product.approvalStatus = "approved";
   product.isPublished = true;
   product.rejectionReason = null;
   await product.save();
+
+  if (!wasApproved) notifySellerProductDecision(product, "approved"); // not awaited on purpose
   return product;
 }
 
 export async function rejectProduct(productId, reason) {
   assertValidObjectId(productId);
 
-  // populate seller here — this is the one call that needs the seller's
-  // name/email to send the rejection notice
   const product = await Product.findById(productId).populate("seller", "name email");
   if (!product) throw createApiError(404, "Product not found");
 
@@ -49,15 +53,6 @@ export async function rejectProduct(productId, reason) {
   product.rejectionReason = reason;
   await product.save();
 
-  // Best-effort: a failed email should never undo or block the rejection
-  // itself — the rejection already saved successfully above.
-  if (product.seller?.email) {
-    try {
-      await sendProductRejectionEmail(product.seller.email, product.seller.name, product.name, reason);
-    } catch (err) {
-      console.error(`Failed to send rejection email for product ${product._id}:`, err.message);
-    }
-  }
-
+  notifySellerProductDecision(product, "rejected", reason); // respects the seller's "Product Notifications" switch
   return product;
 }

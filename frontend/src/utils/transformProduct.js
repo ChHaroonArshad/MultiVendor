@@ -14,5 +14,6 @@ export function transformProduct(p) {
     badge: null,     // real products don't have this yet — no fake data
     rating: null,    // reviews aren't built yet; ProductCard hides the stars when this is null
     reviews: null,
+    sellerId: p.seller?._id || null,
   };
 }

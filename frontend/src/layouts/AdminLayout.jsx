@@ -2,6 +2,7 @@ import { useState } from "react";
 import { NavLink, Link, Outlet } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth";
 import { adminNavItems } from "../config/adminNav";
+import { Avatar } from "../components/ui/Avatar";
 
 export function AdminLayout() {
   const { user, logout } = useAuth();
@@ -41,8 +42,8 @@ export function AdminLayout() {
                 </button>
 
                 <div className="relative">
-                  <button onClick={() => setMenuOpen((v) => !v)} className="w-9 h-9 rounded-full bg-[#111111] text-white text-xs font-medium flex items-center justify-center">
-                    {user?.name?.charAt(0).toUpperCase() || "A"}
+                  <button onClick={() => setMenuOpen((v) => !v)} className="rounded-full">
+                    <Avatar name={user?.name} src={user?.avatar} size={36} />
                   </button>
                   {menuOpen && (
                     <div className="absolute right-0 mt-2 w-56 bg-white border border-[#E5E5E5] rounded-2xl shadow-md py-2 animate-fade-slide-up z-30">

@@ -7,8 +7,9 @@ import { Link, useNavigate, useLocation, useSearchParams } from "react-router-do
 import { getHomeForRole, getSafeRedirect } from "../../utils/roleUtils";
 import { startGoogleLogin } from "../../services/authApi";
 
-
-
+// Same string is used as the Google redirect error code (?error=...) and as the field name
+// the backend puts in its 403 errors array for a suspended account.
+const SUSPENDED_CODE = "account_suspended";
 
 const GOOGLE_ERRORS = {
     google_cancelled: "Google sign-in was cancelled.",
@@ -23,6 +24,9 @@ const loginSchema = z.object({
 export function LoginPage() {
     const [showPassword, setShowPassword] = useState(false);
     const [searchParams] = useSearchParams();
+    const [suspension, setSuspension] = useState(
+        searchParams.get("error") === SUSPENDED_CODE ? { reason: "" } : null
+    );
     const [serverError, setServerError] = useState(GOOGLE_ERRORS[searchParams.get("error")] || "");
     const [loading, setLoading] = useState(false);
     const navigate = useNavigate();
@@ -32,6 +36,7 @@ export function LoginPage() {
 
     const onSubmit = async (formData) => {
         setServerError("");
+        setSuspension(null);
         setLoading(true);
         try {
             const res = await fetch(`${import.meta.env.VITE_API_URL}/auth/login`, {
@@ -42,6 +47,12 @@ export function LoginPage() {
             });
             const data = await res.json();
             if (!res.ok) {
+                // A suspended account gets its own notice instead of a generic error line.
+                const suspended = data.errors?.find((e) => e.field === SUSPENDED_CODE);
+                if (res.status === 403 && suspended) {
+                    setSuspension({ reason: suspended.message || "" });
+                    return;
+                }
                 setServerError(data.message || "We couldn't sign you in. Please check your credentials.");
                 return;
             }
@@ -76,6 +87,23 @@ export function LoginPage() {
                         <p className="text-sm text-[#6B6B6B] mb-8">
                             Sign in to continue shopping and manage your account.
                         </p>
+
+                        {suspension && (
+                            <div role="alert" className="mb-5 px-4 py-3 rounded-xl border border-red-200 bg-red-50 animate-fade-slide-up">
+                                <p className="text-sm font-medium text-red-600">Your account has been suspended</p>
+                                <p className="text-xs text-red-500 mt-1">
+                                    Our team has suspended this account, so you can't sign in right now. Please check your email for the details.
+                                </p>
+                                {suspension.reason && (
+                                    <p className="text-xs text-red-600 mt-2">
+                                        <span className="font-medium">Reason:</span> {suspension.reason}
+                                    </p>
+                                )}
+                                <p className="text-xs text-red-500 mt-2">
+                                    If you think this is a mistake, please contact our support team.
+                                </p>
+                            </div>
+                        )}
 
                         {serverError && (
                             <div className="mb-5 px-4 py-2.5 rounded-xl border border-red-200 bg-red-50 text-red-600 text-sm animate-fade-slide-up">

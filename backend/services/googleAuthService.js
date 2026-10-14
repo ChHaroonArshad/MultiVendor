@@ -7,7 +7,16 @@ import { generateRandomString, generateCodeChallenge } from "../utils/pkceUtils.
 import { hashToken } from "../utils/tokenUtils.js";
 import { createApiError } from "../utils/apiError.js";
 import { createSession } from "./authService.js";
+import { notifyAdminsNewSeller } from "./notificationService.js";
 
+const isTrustedGooglePicture = (url) => {
+  try {
+    const parsed = new URL(url);
+    return parsed.protocol === "https:" && parsed.hostname.endsWith(".googleusercontent.com");
+  } catch {
+    return false;
+  }
+};
 const REQUIRED_GOOGLE_ENV = ["GOOGLE_CLIENT_ID", "GOOGLE_CLIENT_SECRET", "GOOGLE_REDIRECT_URI"];
 for (const key of REQUIRED_GOOGLE_ENV) {
   if (!process.env[key]) {
@@ -50,24 +59,41 @@ export async function createGoogleAuthRequest() {
 
 function assertActive(user) {
   if (user.status === "suspended") {
-    throw createApiError(403, "Your account has been suspended. Please contact support.");
+    const error = createApiError(
+      403,
+      "Your account has been suspended. Please contact support."
+    );
+
+    error.accountSuspended = true;
+    throw error;
   }
+
   return user;
 }
 
 // Returns an existing user (a returning Google user, or a local account we safely link),
 // or null when this is a brand-new person who still has to choose a role.
-async function findExistingGoogleUser({ googleId, email }) {
+async function findExistingGoogleUser({ googleId, email, picture }) {
+  const adoptPicture = (user) => {
+    if (!user.avatar && isTrustedGooglePicture(picture)) user.avatar = picture;
+  };
+
   const byGoogleId = await User.findOne({ googleId });
-  if (byGoogleId) return assertActive(byGoogleId);
+  if (byGoogleId) {
+    assertActive(byGoogleId);
+    if (!byGoogleId.avatar && isTrustedGooglePicture(picture)) {
+      byGoogleId.avatar = picture;
+      await byGoogleId.save();
+    }
+    return byGoogleId;
+  }
 
   const byEmail = await User.findOne({ email }).select("+password");
   if (!byEmail) return null;
 
   assertActive(byEmail);
 
-  // Pre-hijacking guard: if this local account's email was never verified, someone may have
-  // registered it with a password they control. Wipe that password and any sessions first.
+  // Pre-hijacking guard: an unverified local account may have been registered by someone else.
   if (!byEmail.isEmailVerified) {
     byEmail.password = undefined;
     byEmail.emailVerificationTokenHash = undefined;
@@ -76,13 +102,13 @@ async function findExistingGoogleUser({ googleId, email }) {
   }
 
   byEmail.googleId = googleId;
-  byEmail.isEmailVerified = true; // Google already verified this email
+  byEmail.isEmailVerified = true;
+  adoptPicture(byEmail);
   await byEmail.save();
   return byEmail;
 }
-
-async function createPendingSignup({ googleId, email, name }) {
-  await PendingGoogleSignup.deleteMany({ googleId }); // a newer attempt replaces older ones
+async function createPendingSignup({ googleId, email, name, picture }) {
+  await PendingGoogleSignup.deleteMany({ googleId });
 
   const token = generateRandomString();
   await PendingGoogleSignup.create({
@@ -90,10 +116,12 @@ async function createPendingSignup({ googleId, email, name }) {
     googleId,
     email,
     name: name || "",
+    picture: isTrustedGooglePicture(picture) ? picture : null,
     expiresAt: new Date(Date.now() + PENDING_SIGNUP_TTL_MS),
   });
-  return token; // raw token goes into the cookie; only its hash is stored
+  return token;
 }
+
 
 export async function completeGoogleLogin({ code, state, stateCookie }) {
   if (!code || !state || !stateCookie || state !== stateCookie) {
@@ -101,7 +129,10 @@ export async function completeGoogleLogin({ code, state, stateCookie }) {
   }
 
   // Fetch AND delete in one step: each flow can only ever be used once
-  const transaction = await OAuthTransaction.findOneAndDelete({ stateHash: hashToken(state) });
+  const transaction = await OAuthTransaction.findOneAndDelete({
+    stateHash: hashToken(state),
+  });
+
   if (!transaction || transaction.expiresAt < new Date()) {
     throw createApiError(400, "Google sign-in expired. Please try again.");
   }
@@ -115,15 +146,22 @@ export async function completeGoogleLogin({ code, state, stateCookie }) {
       client_secret: process.env.GOOGLE_CLIENT_SECRET,
       redirect_uri: process.env.GOOGLE_REDIRECT_URI,
       grant_type: "authorization_code",
-      code_verifier: transaction.codeVerifier, // PKCE proof
+      code_verifier: transaction.codeVerifier,
     }),
   });
-  if (!tokenRes.ok) throw createApiError(401, "Google sign-in failed.");
+
+  if (!tokenRes.ok) {
+    throw createApiError(401, "Google sign-in failed.");
+  }
 
   const { id_token: idToken } = await tokenRes.json();
-  if (!idToken) throw createApiError(401, "Google sign-in failed.");
+
+  if (!idToken) {
+    throw createApiError(401, "Google sign-in failed.");
+  }
 
   let payload;
+
   try {
     ({ payload } = await jwtVerify(idToken, GOOGLE_JWKS, {
       issuer: ["https://accounts.google.com", "accounts.google.com"],
@@ -133,25 +171,30 @@ export async function completeGoogleLogin({ code, state, stateCookie }) {
     throw createApiError(401, "Google sign-in failed.");
   }
 
-  if (payload.nonce !== transaction.nonce) throw createApiError(401, "Google sign-in failed.");
+  if (payload.nonce !== transaction.nonce) {
+    throw createApiError(401, "Google sign-in failed.");
+  }
+
   if (!payload.email || payload.email_verified !== true) {
     throw createApiError(403, "Your Google email address is not verified.");
   }
 
   const identity = {
-    googleId: payload.sub, // Google's permanent unique ID (emails can change, sub cannot)
+    googleId: payload.sub,
     email: payload.email.toLowerCase(),
     name: payload.name,
+    picture: payload.picture,
   };
-
   const existingUser = await findExistingGoogleUser(identity);
+
   if (existingUser) {
     const tokens = await createSession(existingUser);
     return { needsRole: false, user: existingUser, ...tokens };
   }
 
-  // Brand-new person: park their identity and let them choose a role first
+  // Brand-new person: let them choose a role first
   const pendingToken = await createPendingSignup(identity);
+
   return { needsRole: true, pendingToken };
 }
 
@@ -179,8 +222,9 @@ export async function finalizeGoogleSignup({ token, role }) {
       name: (pending.name || pending.email.split("@")[0]).trim().slice(0, 50),
       email: pending.email,
       googleId: pending.googleId,
-      role, // already limited to customer/seller by Zod in the route
+      role,
       isEmailVerified: true,
+      avatar: pending.picture || null,
     });
   } catch (err) {
     if (err.code === 11000) {
@@ -188,7 +232,7 @@ export async function finalizeGoogleSignup({ token, role }) {
     }
     throw err;
   }
-
+if (user.role === "seller") notifyAdminsNewSeller(user); // not awaited
   const tokens = await createSession(user);
   return { user, ...tokens };
 }

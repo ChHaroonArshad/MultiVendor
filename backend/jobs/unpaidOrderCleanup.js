@@ -1,7 +1,7 @@
 import { reconcileStaleUnpaidOrders } from "../services/checkoutService.js";
 
 const RUN_EVERY_MS = 5 * 60 * 1000;
-const STALE_AFTER_MINUTES = 30;
+const STALE_AFTER_MINUTES = Number(process.env.UNPAID_ORDER_TTL_MINUTES) || 30;
 
 let timer = null;
 let running = false;

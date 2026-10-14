@@ -149,6 +149,7 @@ export const googleCallbackController = asyncHandler(async (req, res) => {
   } catch (err) {
     if (!err.isApiError) console.error(err);
     const code = err.statusCode === 403 ? "google_forbidden" : "google_failed";
+    
     res.redirect(`${env.clientUrl}/login?error=${code}`);
   }
 });

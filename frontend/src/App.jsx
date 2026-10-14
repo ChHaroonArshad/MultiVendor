@@ -48,7 +48,16 @@ import { ProductViewPage } from "./pages/seller/ProductViewPage";
 import { EditProductPage } from "./pages/seller/EditProductPage";
 import { ToastProvider } from "./context/ToastContext";
 
+import { ProductsPage } from "./pages/ProductsPage";
+import { CategoriesPage } from "./pages/CategoriesPage";
+
 import { SellerOrderDetailPage } from "./pages/seller/SellerOrderDetailPage";
+
+import { AdminOrderDetailPage } from "./pages/admin/AdminOrderDetailPage";
+
+import { AdminUserDetailPage } from "./pages/admin/AdminUserDetailPage";
+import { StorePage } from "./pages/StorePage";
+
 function App() {
   return (
     <ToastProvider>
@@ -58,11 +67,15 @@ function App() {
             <Routes>
               <Route path="/" element={<LandingPage />} />
               <Route path="/product/:id" element={<ProductDetailPage />} />
+              <Route path="/store/:id" element={<StorePage />} />
+
               <Route path="/checkout" element={<CheckoutPage />} />
               <Route path="/reset-password" element={<ResetPasswordPage />} />
               <Route path="/verify-email" element={<VerifyEmailPage />} />
               <Route path="/select-role" element={<SelectRolePage />} />
               <Route path="/success" element={<SuccessRedirectPage />} />
+              <Route path="/products" element={<ProductsPage />} />
+              <Route path="/categories" element={<CategoriesPage />} />
 
               <Route element={<GuestRoute />}>
                 <Route path="/login" element={<LoginPage />} />
@@ -100,6 +113,7 @@ function App() {
                     <Route path="/seller/products/:id" element={<ProductViewPage />} />
                     <Route path="/seller/products/:id/edit" element={<EditProductPage />} />
                     <Route path="/seller/orders/:id" element={<SellerOrderDetailPage />} />
+
                   </Route>
                 </Route>
                 <Route element={<RoleRoute allowedRoles={["admin"]} />}>
@@ -112,7 +126,8 @@ function App() {
                     <Route path="/admin/categories" element={<AdminCategoriesPage />} />
                     <Route path="/admin/settings" element={<AdminSettingsPage />} />
                     <Route path="/admin/products/:id" element={<AdminProductDetailPage />} />
-
+                    <Route path="/admin/orders/:id" element={<AdminOrderDetailPage />} />
+                    <Route path="/admin/users/:id" element={<AdminUserDetailPage />} />
                   </Route>
                 </Route>
               </Route>

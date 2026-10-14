@@ -3,6 +3,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { createProduct } from "../../services/productApi";
 import { useToast } from "../../context/ToastContext";
+import { categories } from "../../data/marketplaceData";
 
 const CATEGORIES = ["Electronics", "Fashion", "Home", "Beauty", "Sports", "Books", "Gaming", "Accessories"];
 const MAX_FILE_MB = 5;
@@ -122,7 +123,8 @@ export function AddProductPage() {
               <label className="block text-xs font-medium text-[#6B6B6B] mb-1.5">Category</label>
               <select value={form.category} onChange={(e) => setField("category", e.target.value)} className={fieldClass}>
                 <option value="">Select a category</option>
-                {CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}
+              {categories.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+
               </select>
               {errors.category && <p className="mt-1.5 ml-1 text-xs text-red-500">{errors.category}</p>}
             </div>

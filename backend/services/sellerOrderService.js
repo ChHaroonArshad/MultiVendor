@@ -3,6 +3,7 @@ import { Order } from "../models/Order.js";
 import { Product } from "../models/Product.js";
 import { stripe } from "../config/stripeConfig.js";
 import { createApiError } from "../utils/apiError.js";
+import { notifyCustomerOrderStatus } from "./notificationService.js";
 
 // Sellers only ever see orders that were actually paid (or paid and later refunded).
 const VISIBLE_PAYMENT_STATUSES = ["paid", "refunded"];
@@ -41,14 +42,12 @@ export async function getSellerOrders({ sellerId, status, search, searchBy, page
     if (searchByValue === "product") {
       filter["items.name"] = { $regex: pattern, $options: "i" };
     } else {
-      // _id is an ObjectId, so match against its string form (lets the seller search by
-      // the short "#FF5147" code or by the full id).
       filter.$expr = { $regexMatch: { input: { $toString: "$_id" }, regex: pattern, options: "i" } };
     }
   }
 
   const pageNum = Math.max(1, parseInt(asString(page), 10) || 1);
-  const limitNum = Math.min(MAX_LIMIT, Math.max(1, parseInt(asString(limit), 1) || 1));
+  const limitNum = Math.min(MAX_LIMIT, Math.max(1, parseInt(asString(limit), 10) || 10));
 
   const [orders, total] = await Promise.all([
     Order.find(filter)
@@ -111,7 +110,9 @@ async function cancelAndRefund(order) {
     )
   );
 
-  return cancelled.populate("buyer", BUYER_FIELDS);
+  const populated = await cancelled.populate("buyer", BUYER_FIELDS);
+  notifyCustomerOrderStatus(populated, "cancelled"); // not awaited: a mail failure must not undo a refund
+  return populated;
 }
 
 export async function updateOrderStatus(sellerId, orderId, nextStatus) {
@@ -141,6 +142,7 @@ export async function updateOrderStatus(sellerId, orderId, nextStatus) {
   ).populate("buyer", BUYER_FIELDS);
   if (!updated) throw createApiError(409, "This order was just updated. Please refresh.");
 
+  notifyCustomerOrderStatus(updated, nextStatus); // shipped or delivered, respects the customer's switch
   return updated;
 }
 

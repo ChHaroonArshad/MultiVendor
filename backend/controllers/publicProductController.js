@@ -3,13 +3,7 @@ import { sendSuccessResponse } from "../utils/apiResponse.js";
 import * as productService from "../services/productService.js";
 
 export const listPublicProducts = asyncHandler(async (req, res) => {
-  const { category, search, page, limit } = req.query;
-  const result = await productService.getPublicProducts({
-    category,
-    search,
-    page: page ? Number(page) : 1,
-    limit: limit ? Number(limit) : 20,
-  });
+  const result = await productService.getPublicProducts(req.query);
   sendSuccessResponse(res, 200, "Products fetched", result);
 });
 
