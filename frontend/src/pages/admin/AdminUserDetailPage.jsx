@@ -120,7 +120,7 @@ export function AdminUserDetailPage() {
         </div>
 
         {user.role !== "admin" && (
-          <div className="shrink-0">
+          <div className="shrink-0 flex flex-wrap items-center gap-2">
             {user.status === "active" ? (
               <button onClick={() => setSuspendOpen(true)} disabled={acting} className="text-sm font-medium px-5 py-2.5 rounded-full border border-[#E5E5E5] text-[#C0392B] hover:border-[#C0392B]/50 transition-colors disabled:opacity-50">
                 Suspend account
@@ -130,6 +130,16 @@ export function AdminUserDetailPage() {
                 Reactivate account
               </button>
             )}
+
+            {user.role === "seller" && (
+              <button
+                onClick={() => navigate(`/admin/messages?seller=${user._id}`)}
+                className="text-sm font-medium px-5 py-2.5 rounded-full border border-[#E5E5E5] hover:border-[#C9A227]/50 transition-colors"
+              >
+                Message seller
+              </button>
+            )}
+
           </div>
         )}
       </div>

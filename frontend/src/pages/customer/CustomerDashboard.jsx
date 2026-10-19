@@ -9,8 +9,8 @@ import {
   mockCustomer, mockDashboardStats, mockActiveOrder, mockOrders, mockWishlist,
   mockProducts, mockBasket, mockActivity, mockInsights,
 } from "../../data/customerMockData";
-
-
+import { NotificationBell } from "../../components/notifications/NotificationBell";
+import { MessagesButton } from "../../components/chat/MessagesButton"
 
 
 const navSections = [
@@ -168,8 +168,8 @@ export function CustomerLayout() {
                   🛍️
                   {totalCount > 0 && <span className="absolute top-1 right-1 w-4 h-4 text-[10px] bg-[#C9A227] text-white rounded-full flex items-center justify-center animate-badge-pop">{totalCount}</span>}
                 </button>
-                <Link to="/customer/notifications" aria-label="Notifications" className="w-10 h-10 rounded-full flex items-center justify-center text-[#6B6B6B] hover:bg-[#FAFAFA] hover:text-[#111111] transition-colors">🔔</Link>
-
+              <NotificationBell />
+              <MessagesButton />
                 <div className="relative" ref={menuRef}>
                   <button onClick={() => setMenuOpen((v) => !v)} aria-label="Account menu" className="rounded-full">
                     <Avatar name={user?.name} src={user?.avatar} size={36} />
@@ -184,7 +184,7 @@ export function CustomerLayout() {
                       <Link to="/customer/settings" onClick={() => setMenuOpen(false)} className="block px-4 py-2.5 text-sm text-[#111111] hover:bg-[#FAFAFA]">Settings</Link>
                       <Link to="/customer/addresses" onClick={() => setMenuOpen(false)} className="block px-4 py-2.5 text-sm text-[#111111] hover:bg-[#FAFAFA]">Addresses</Link>
                       <Link to="/customer/reviews" onClick={() => setMenuOpen(false)} className="block px-4 py-2.5 text-sm text-[#111111] hover:bg-[#FAFAFA]">Reviews</Link>
-                      <button className="block w-full text-left px-4 py-2.5 text-sm text-[#111111] hover:bg-[#FAFAFA]">Help & Support</button>
+                  <Link to="/help" onClick={() => setMenuOpen(false)} className="block px-4 py-2.5 text-sm text-[#111111] hover:bg-[#FAFAFA]">Help & Support</Link>
                       <button onClick={logout} className="block w-full text-left px-4 py-2.5 text-sm text-red-500 hover:bg-red-50">Log out</button>
                     </div>
                   )}

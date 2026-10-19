@@ -11,7 +11,8 @@ import { usePurchaseGuard } from "../hooks/usePurchaseGuard";
 import { getPublicStore } from "../services/storeApi";
 import { getPublicProducts } from "../services/publicProductApi";
 import { transformProduct } from "../utils/transformProduct";
-
+import { ChatWithSellerButton } from "../components/chat/ChatWithSellerButton";
+import { ReportButton } from "../components/reports/ReportButton";
 const PAGE_SIZE = 12;
 
 export function StorePage() {
@@ -93,7 +94,17 @@ export function StorePage() {
             <div className="-mt-10 mb-4 w-20 h-20 rounded-full border-4 border-white shadow overflow-hidden bg-white">
               <Avatar name={store.storeName} src={store.logo} size={72} />
             </div>
-            <h1 className="text-2xl sm:text-3xl font-serif text-[#111111]">{store.storeName}</h1>
+            <div className="flex flex-wrap items-center gap-4">
+              <div className="flex items-start justify-between gap-4">
+                <h1 className="text-2xl sm:text-3xl font-serif text-[#111111]">{store.storeName}</h1>
+                <ReportButton targetType="store" targetId={store._id} targetName={store.storeName} ownerId={store._id} variant="outline" label="Report store" />
+              </div>
+
+              <ChatWithSellerButton
+                sellerId={id}
+                label="Message store"
+              />
+            </div>
             <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-2 text-xs text-[#6B6B6B]">
               {store.category && <span className="text-[#C9A227]">{store.category}</span>}
               <span>{store.productCount} product{store.productCount === 1 ? "" : "s"}</span>

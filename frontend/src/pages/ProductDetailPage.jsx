@@ -13,6 +13,8 @@ import { transformProduct } from "../utils/transformProduct";
 import { recordRecentlyViewed } from "../utils/recentlyViewed";
 import { formatPrice } from "../utils/formatPrice";
 import { getCategoryLabel } from "../data/homeContent";
+import { ReportButton } from "../components/reports/ReportButton";
+
 
 const container = "max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-10";
 const DESCRIPTION_PREVIEW_LENGTH = 180;
@@ -391,9 +393,16 @@ export function ProductDetailPage() {
             <p className="text-xs text-[#6B6B6B] mb-3">
               By{" "}
               {product.sellerId ? (
-                <Link to={`/store/${product.sellerId}`} className="text-[#111111] font-medium hover:text-[#C9A227] transition-colors">{product.seller}</Link>
+                <Link
+                  to={`/store/${product.sellerId}`}
+                  className="text-[#111111] font-medium hover:text-[#C9A227] transition-colors"
+                >
+                  {product.seller}
+                </Link>
               ) : (
-                <span className="text-[#111111] font-medium">{product.seller}</span>
+                <span className="text-[#111111] font-medium">
+                  {product.seller}
+                </span>
               )}
             </p>
             {product.rating != null && (
@@ -525,6 +534,14 @@ export function ProductDetailPage() {
                 </p>
               )}
             </div>
+          </div>
+             <div className="mt-5 pt-4 border-t border-[#E5E5E5]">
+            <ReportButton
+              targetType="product"
+              targetId={product.id}
+              targetName={product.name}
+              ownerId={product.sellerId}
+            />
           </div>
         </section>
       </main>

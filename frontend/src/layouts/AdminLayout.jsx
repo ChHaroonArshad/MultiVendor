@@ -3,7 +3,8 @@ import { NavLink, Link, Outlet } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth";
 import { adminNavItems } from "../config/adminNav";
 import { Avatar } from "../components/ui/Avatar";
-
+import { NotificationBell } from "../components/notifications/NotificationBell";
+import { MessagesButton } from "../components/chat/MessagesButton"
 export function AdminLayout() {
   const { user, logout } = useAuth();
   const [menuOpen, setMenuOpen] = useState(false);
@@ -20,7 +21,10 @@ export function AdminLayout() {
                 key={item.key} to={item.path} end={item.path === "/admin"}
                 className={({ isActive }) => `px-3 py-2 rounded-xl text-sm transition-colors duration-200 ${isActive ? "bg-[#FBF6E9] text-[#111111] font-medium" : "text-[#6B6B6B] hover:bg-[#FAFAFA] hover:text-[#111111]"}`}
               >
-                {item.label}
+         <span className="flex items-center gap-2.5">
+  {item.icon && <item.icon size={16} />}
+  {item.label}
+</span>
               </NavLink>
             ))}
           </nav>
@@ -37,10 +41,8 @@ export function AdminLayout() {
               </div>
 
               <div className="flex items-center gap-1.5 ml-auto">
-                <button aria-label="Notifications" className="relative w-10 h-10 rounded-full flex items-center justify-center text-[#6B6B6B] hover:bg-[#FAFAFA] hover:text-[#111111] transition-colors">
-                  🔔<span className="absolute top-1 right-1 w-4 h-4 text-[10px] bg-[#C9A227] text-white rounded-full flex items-center justify-center">5</span>
-                </button>
-
+            <NotificationBell />
+<MessagesButton />
                 <div className="relative">
                   <button onClick={() => setMenuOpen((v) => !v)} className="rounded-full">
                     <Avatar name={user?.name} src={user?.avatar} size={36} />
@@ -79,7 +81,10 @@ export function AdminLayout() {
             {adminNavItems.map((item) => (
               <NavLink key={item.key} to={item.path} end={item.path === "/admin"} onClick={() => setMobileNavOpen(false)}
                 className={({ isActive }) => `px-3 py-2.5 rounded-xl text-sm transition-colors duration-200 ${isActive ? "bg-[#FBF6E9] text-[#111111] font-medium" : "text-[#6B6B6B] hover:bg-[#FAFAFA]"}`}>
-                {item.label}
+           <span className="flex items-center gap-2.5">
+  {item.icon && <item.icon size={16} />}
+  {item.label}
+</span>
               </NavLink>
             ))}
           </nav>

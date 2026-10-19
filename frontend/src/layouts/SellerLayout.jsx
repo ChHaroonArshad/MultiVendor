@@ -5,7 +5,8 @@ import { sellerNavItems } from "../config/sellerNav";
 import { useClickOutside } from "../hooks/useClickOutside";
 // import { Avatar } from "../../components/ui/Avatar";
 import { Avatar } from "../components/ui/Avatar";
-
+import { NotificationBell } from "../components/notifications/NotificationBell";
+import { MessagesButton } from "../components/chat/MessagesButton"
 export function SellerLayout() {
   const { user, logout } = useAuth();
   const [menuOpen, setMenuOpen] = useState(false);
@@ -39,9 +40,9 @@ export function SellerLayout() {
               </div>
 
               <div className="flex items-center gap-1.5 ml-auto">
-                <button aria-label="Notifications" className="relative w-10 h-10 rounded-full flex items-center justify-center text-[#6B6B6B] hover:bg-[#FAFAFA] hover:text-[#111111] transition-colors">
-                  🔔<span className="absolute top-1 right-1 w-4 h-4 text-[10px] bg-[#C9A227] text-white rounded-full flex items-center justify-center">3</span>
-                </button>
+               <NotificationBell />
+               
+               <MessagesButton />
                 <button aria-label="Messages" className="w-10 h-10 rounded-full flex items-center justify-center text-[#6B6B6B] hover:bg-[#FAFAFA] hover:text-[#111111] transition-colors">✉️</button>
 
                 <div className="relative" ref={menuRef}>
@@ -56,9 +57,7 @@ export function SellerLayout() {
                       </div>
                       <Link to="/seller/settings" onClick={() => setMenuOpen(false)} className="block px-4 py-2.5 text-sm text-[#111111] hover:bg-[#FAFAFA]">My Profile</Link>
                       <Link to="/seller/store" onClick={() => setMenuOpen(false)} className="block px-4 py-2.5 text-sm text-[#111111] hover:bg-[#FAFAFA]">Store Settings</Link>
-                      <Link to="/seller/settings" onClick={() => setMenuOpen(false)} className="block px-4 py-2.5 text-sm text-[#111111] hover:bg-[#FAFAFA]">Change Password</Link>
-                      <Link to="/seller/store" onClick={() => setMenuOpen(false)} className="block px-4 py-2.5 text-sm text-[#111111] hover:bg-[#FAFAFA]">View Store</Link>
-                      <button className="block w-full text-left px-4 py-2.5 text-sm text-[#111111] hover:bg-[#FAFAFA]">Help & Support</button>
+                      <Link to="/seller/settings" onClick={() => setMenuOpen(false)} className="block px-4 py-2.5 text-sm text-[#111111] hover:bg-[#FAFAFA]">Change Password</Link><Link to="/help" onClick={() => setMenuOpen(false)} className="block px-4 py-2.5 text-sm text-[#111111] hover:bg-[#FAFAFA]">Help & Support</Link><button className="block w-full text-left px-4 py-2.5 text-sm text-[#111111] hover:bg-[#FAFAFA]">Help & Support</button>
                       <button onClick={logout} className="block w-full text-left px-4 py-2.5 text-sm text-red-500 hover:bg-red-50">Log out</button>
                     </div>
                   )}

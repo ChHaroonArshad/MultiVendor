@@ -100,6 +100,19 @@ export function SellerOrderDetailPage() {
               Mark as delivered
             </button>
           )}
+
+          <button
+            onClick={() =>
+              navigate(
+                `/seller/messages?customer=${order.buyer?._id}&order=${order._id}`
+              )
+            }
+            disabled={!order.buyer?._id}
+            className="text-sm font-medium px-5 py-2.5 rounded-full border border-[#E5E5E5] hover:border-[#C9A227]/50 transition-colors disabled:opacity-50"
+          >
+            Message customer
+          </button>
+
         </div>
       </div>
 

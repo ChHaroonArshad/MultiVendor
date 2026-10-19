@@ -11,7 +11,7 @@ import { CopyButton } from "../../components/ui/CopyButton";
 import { Spinner } from "../../components/ui/Spinner";
 import { useToast } from "../../context/ToastContext";
 import { shortOrderId } from "../../utils/orderUtils";
-
+import { ChatWithSellerButton } from "../../components/chat/ChatWithSellerButton";
 const needsRepayment = (order) => order?.status === "pending" && order?.paymentStatus === "unpaid";
 
 export function OrderDetailsPage() {
@@ -160,9 +160,23 @@ export function OrderDetailsPage() {
       <div className="grid md:grid-cols-2 gap-5">
         <div className="border border-[#E5E5E5] rounded-2xl p-5 bg-white">
           <p className="text-xs text-[#6B6B6B] mb-3">Sold by</p>
-          <div className="flex items-center gap-3">
-            <Avatar name={order.seller?.name} size={40} />
-            <p className="text-sm font-medium text-[#111111] truncate">{order.seller?.name || "Unknown seller"}</p>
+
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="flex items-center gap-3 min-w-0">
+              <Avatar name={order.seller?.name} size={40} />
+
+              <p className="text-sm font-medium text-[#111111] truncate">
+                {order.seller?.name || "Unknown seller"}
+              </p>
+            </div>
+
+            {order.seller?._id && (
+              <ChatWithSellerButton
+                sellerId={order.seller._id}
+                productId={order.items?.[0]?.product}
+                label="Message seller"
+              />
+            )}
           </div>
         </div>
 

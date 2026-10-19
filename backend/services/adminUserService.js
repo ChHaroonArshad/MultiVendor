@@ -5,6 +5,12 @@ import { Product } from "../models/Product.js";
 import { Order } from "../models/Order.js";
 import { createApiError } from "../utils/apiError.js";
 import { sendAccountSuspendedEmail, sendAccountReactivatedEmail } from "./emailService.js";
+import {
+  notifyAccountReactivatedInApp,
+  notifySellerApplicationDecisionInApp,
+  notifyAdminsNewSellerApplication,
+} from "./notificationService.js";
+ import { disconnectUserSockets } from "../socket/socketServer.js";
 
 const ROLES = ["customer", "seller", "admin"];
 const STATUSES = ["active", "suspended"];
@@ -145,7 +151,7 @@ export async function suspendUser(adminId, userId, reason) {
 
   // Kill every session so they cannot quietly refresh their way back in.
   await RefreshToken.deleteMany({ user: userId });
-
+  disconnectUserSockets(userId);
   // Best effort: a failed email must never undo the suspension itself.
   try {
     await sendAccountSuspendedEmail(user.email, user.name, reason);
@@ -172,6 +178,7 @@ export async function reactivateUser(userId) {
 
   try {
     await sendAccountReactivatedEmail(user.email, user.name);
+    notifyAccountReactivatedInApp(user._id);
   } catch (err) {
     console.error(`Failed to send reactivation email to user ${userId}:`, err.message);
   }

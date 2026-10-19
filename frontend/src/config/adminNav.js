@@ -1,3 +1,5 @@
+import { FlagIcon } from "../components/icons/FlagIcon";
+
 export const adminNavItems = [
   { key: "overview", label: "Overview", path: "/admin" },
   { key: "users", label: "Users", path: "/admin/users" },
@@ -6,4 +8,11 @@ export const adminNavItems = [
   { key: "orders", label: "Orders", path: "/admin/orders" },
   { key: "categories", label: "Categories", path: "/admin/categories" },
   { key: "settings", label: "Settings", path: "/admin/settings" },
+  { key: "messages", label: "Messages", path: "/admin/messages" },
+  {
+    key: "reports",
+    label: "Reports",
+    path: "/admin/reports",
+    icon: FlagIcon,
+  },
 ];

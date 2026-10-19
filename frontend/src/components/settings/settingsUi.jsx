@@ -6,7 +6,7 @@ export const inputClass = (hasError) =>
   `w-full px-4 py-2.5 rounded-full border bg-[#FAFAFA] text-sm text-[#111111] focus:outline-none focus:ring-2 focus:bg-white transition-all ${
     hasError ? "border-red-400 focus:ring-red-100" : "border-[#E5E5E5] focus:border-[#C9A227] focus:ring-[#C9A227]/15"
   }`;
-
+export const textareaClass = (hasError) => `${inputClass(hasError).replace("rounded-full", "rounded-2xl")} resize-none`;
 export function FieldError({ message }) {
   return message ? <p className="mt-1.5 ml-1 text-xs text-red-500">{message}</p> : null;
 }

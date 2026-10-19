@@ -115,3 +115,29 @@ export const deleteAccountLimiter = rateLimit({
   legacyHeaders: false,
   handler: (req, res, next) => next(createApiError(429, "Too many attempts. Please try again later.")),
 });
+
+export const notificationsLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 120, // the badge polls every 45s, so normal use is a couple of requests a minute
+  standardHeaders: true,
+  legacyHeaders: false,
+  handler: (req, res, next) => next(createApiError(429, "Too many requests. Please slow down.")),
+});
+
+
+
+export const reportLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 10,
+  standardHeaders: true,
+  legacyHeaders: false,
+  handler: (req, res, next) => next(createApiError(429, "Too many reports. Please try again later.")),
+});
+
+export const supportLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000,
+  max: 5,
+  standardHeaders: true,
+  legacyHeaders: false,
+  handler: (req, res, next) => next(createApiError(429, "You've sent several messages already. Please try again later.")),
+});

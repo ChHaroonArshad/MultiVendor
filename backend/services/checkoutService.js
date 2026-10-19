@@ -152,22 +152,46 @@ export async function getMyOrderGroup(userId, orderGroupId) {
 // Only moves orders that are still waiting for payment. The confirm call, the webhook and the
 // cleanup job can all run this for the same checkout, so each order is claimed ATOMICALLY and
 // the seller is emailed only by whichever caller wins the claim (no duplicate emails).
+
 export async function markOrderGroupPaid(orderGroupId) {
   const result = await Order.updateMany(
-    { orderGroupId, status: "pending", paymentStatus: "unpaid" },
-    { paymentStatus: "paid", status: "processing" }
+    {
+      orderGroupId,
+      status: "pending",
+      paymentStatus: "unpaid",
+    },
+    {
+      paymentStatus: "paid",
+      status: "processing",
+    }
   );
 
+  // Sirf woh caller aage chalega jis ne orders ko paid mark kiya.
   if (result.modifiedCount > 0) {
-    const orders = await Order.find({ orderGroupId }).select("buyer items.product");
+    // Cart cleanup ke liye required fields.
+    const orders = await Order.find({ orderGroupId })
+      .select("buyer items.product");
+
     const buyerId = orders[0]?.buyer;
-    const boughtIds = orders.flatMap((o) => o.items.map((i) => i.product));
+    const boughtIds = orders.flatMap(
+      (order) => order.items.map((item) => item.product)
+    );
+
     if (buyerId && boughtIds.length > 0) {
-      // remove only what was bought; anything added meanwhile stays
-      await Cart.updateOne({ user: buyerId }, { $pull: { items: { product: { $in: boughtIds } } } });
+      await Cart.updateOne(
+        { user: buyerId },
+        { $pull: { items: { product: { $in: boughtIds } } }
+      });
     }
+
+    // Complete order data notification service ko chahiye.
+    const paidOrders = await Order.find({ orderGroupId });
+
+    // Seller ki in-app notification aur email bhejne ki koshish.
+    await notifySellersOrdersPaid(paidOrders);
   }
 }
+
 async function cancelUnpaidOrderGroup(orderGroupId) {
   const orders = await Order.find({ orderGroupId, status: "pending", paymentStatus: "unpaid" });
   for (const order of orders) {

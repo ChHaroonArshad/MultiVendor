@@ -6,8 +6,9 @@ import { z } from "zod";
 import { useToast } from "../../context/ToastContext";
 import { Avatar } from "../../components/ui/Avatar";
 import { Spinner } from "../../components/ui/Spinner";
-import { FieldError, inputClass, labelClass } from "../../components/settings/settingsUi";
+import { FieldError, inputClass, textareaClass, labelClass } from "../../components/settings/settingsUi";
 import { getMyStore, updateMyStore, uploadStoreImage, removeStoreImage } from "../../services/storeApi";
+
 
 const CATEGORIES = ["Electronics", "Fashion", "Home", "Beauty", "Sports", "Books", "Gaming", "Accessories"];
 const MAX_IMAGE_MB = 3;
@@ -203,7 +204,10 @@ export function SellerStorePage() {
 
             <div>
               <label htmlFor="description" className={labelClass}>Description</label>
-              <textarea id="description" rows={4} {...register("description")} className={`${inputClass(!!errors.description)} rounded-2xl resize-none`} />
+              <textarea
+                {...register("description")}
+                className={textareaClass(!!errors.description)}
+              />
               <FieldError message={errors.description?.message} />
             </div>
 

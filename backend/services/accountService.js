@@ -7,6 +7,9 @@ import { Cart } from "../models/Cart.js";
 import { RefreshToken } from "../models/RefreshToken.js";
 import { SellerProfile } from "../models/SellerProfile.js";
 import { comparePassword } from "../utils/passwordUtils.js";
+import { Notification } from "../models/Notification.js";
+
+
 const AVATAR_FOLDER = "marketplace/avatars";
 
 // The owner AND the "must be active" rule live in the query itself. Wrong id or suspended = no match.
@@ -126,8 +129,11 @@ export async function deleteAccount(userId, { password } = {}) {
       await store.deleteOne();
     }
   }
-
-  await Promise.all([Cart.deleteMany({ user: user._id }), RefreshToken.deleteMany({ user: user._id })]);
+await Promise.all([
+  Cart.deleteMany({ user: user._id }),
+  RefreshToken.deleteMany({ user: user._id }),
+  Notification.deleteMany({ user: user._id }),
+]);
   await safeDelete(user.avatarPublicId);
 
   // Past orders are kept for both parties' records. They reference this id, and every

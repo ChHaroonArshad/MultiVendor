@@ -21,7 +21,6 @@ import { WishlistPage } from "./pages/customer/WishlistPage";
 import { BasketPage } from "./pages/customer/BasketPage";
 import { ReviewsPage } from "./pages/customer/ReviewsPage";
 import { AddressesPage } from "./pages/customer/AddressesPage";
-import { NotificationsPage } from "./pages/customer/NotificationsPage";
 import { SettingsPage } from "./pages/customer/SettingsPage";
 import { CartProvider } from "./context/CartContext";
 import { CartDrawer } from "./components/CartDrawer";
@@ -57,88 +56,115 @@ import { AdminOrderDetailPage } from "./pages/admin/AdminOrderDetailPage";
 
 import { AdminUserDetailPage } from "./pages/admin/AdminUserDetailPage";
 import { StorePage } from "./pages/StorePage";
+import { NotificationProvider } from "./context/NotificationContext";
+import { NotificationsPage } from "./pages/NotificationsPage";
+import { CustomerOverviewPage } from "./pages/customer/CustomerOverviewPage";
 
+import { ChatProvider } from "./context/ChatContext";
+import { ChatPage } from "./pages/ChatPage";
+import { HelpPage } from "./pages/HelpPage";
+import { AboutPage } from "./pages/AboutPage";
+import { AdminReportsPage } from "./pages/admin/AdminReportsPage";
+import { AdminReportDetailPage } from "./pages/admin/AdminReportDetailPage";
 function App() {
   return (
     <ToastProvider>
       <AuthProvider>
-        <CartProvider>
-          <BrowserRouter>
-            <Routes>
-              <Route path="/" element={<LandingPage />} />
-              <Route path="/product/:id" element={<ProductDetailPage />} />
-              <Route path="/store/:id" element={<StorePage />} />
+          <ChatProvider>
+        <NotificationProvider>
 
-              <Route path="/checkout" element={<CheckoutPage />} />
-              <Route path="/reset-password" element={<ResetPasswordPage />} />
-              <Route path="/verify-email" element={<VerifyEmailPage />} />
-              <Route path="/select-role" element={<SelectRolePage />} />
-              <Route path="/success" element={<SuccessRedirectPage />} />
-              <Route path="/products" element={<ProductsPage />} />
-              <Route path="/categories" element={<CategoriesPage />} />
+          <CartProvider>
+            <BrowserRouter>
+              <Routes>
+                <Route path="/" element={<LandingPage />} />
+                <Route path="/product/:id" element={<ProductDetailPage />} />
+                <Route path="/store/:id" element={<StorePage />} />
+<Route path="/help" element={<HelpPage />} />
+<Route path="/about" element={<AboutPage />} />
+                <Route path="/checkout" element={<CheckoutPage />} />
+                <Route path="/reset-password" element={<ResetPasswordPage />} />
+                <Route path="/verify-email" element={<VerifyEmailPage />} />
+                <Route path="/select-role" element={<SelectRolePage />} />
+                <Route path="/success" element={<SuccessRedirectPage />} />
+                <Route path="/products" element={<ProductsPage />} />
+                <Route path="/categories" element={<CategoriesPage />} />
 
-              <Route element={<GuestRoute />}>
-                <Route path="/login" element={<LoginPage />} />
-                <Route path="/register" element={<RegisterPage />} />
-                <Route path="/forgot-password" element={<ForgotPasswordPage />} />
-              </Route>
+                <Route element={<GuestRoute />}>
+                  <Route path="/login" element={<LoginPage />} />
+                  <Route path="/register" element={<RegisterPage />} />
+                  <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+                </Route>
 
-              <Route element={<ProtectedRoute />}>
-                <Route path="/account/change-password" element={<ChangePasswordPage />} />
+                <Route element={<ProtectedRoute />}>
+                  <Route path="/account/change-password" element={<ChangePasswordPage />} />
 
-                <Route element={<RoleRoute allowedRoles={["customer"]} />}>
-                  <Route element={<CustomerLayout />}>
-                    <Route path="/customer" element={<CustomerDashboardHome />} />
-                    <Route path="/customer/orders" element={<CustomerOrdersPage />} />
-                    <Route path="/customer/orders/:orderId" element={<OrderDetailsPage />} />
-                    <Route path="/customer/wishlist" element={<WishlistPage />} />
-                    <Route path="/customer/basket" element={<BasketPage />} />
-                    <Route path="/customer/reviews" element={<ReviewsPage />} />
-                    <Route path="/customer/addresses" element={<AddressesPage />} />
-                    <Route path="/customer/notifications" element={<NotificationsPage />} />
-                    <Route path="/customer/settings" element={<SettingsPage />} />
-                    <Route path="/customer/orders" element={<CustomerOrdersPage />} />
-                    <Route path="/customer/orders/:orderId" element={<OrderDetailsPage />} />
+                  <Route element={<RoleRoute allowedRoles={["customer"]} />}>
+                    <Route element={<CustomerLayout />}>
+                      <Route path="/customer" element={<CustomerOverviewPage />} />
+                      <Route path="/customer/orders" element={<CustomerOrdersPage />} />
+                      <Route path="/customer/orders/:orderId" element={<OrderDetailsPage />} />
+                      <Route path="/customer/wishlist" element={<WishlistPage />} />
+                      <Route path="/customer/basket" element={<BasketPage />} />
+                      <Route path="/customer/reviews" element={<ReviewsPage />} />
+                      <Route path="/customer/addresses" element={<AddressesPage />} />
+                      <Route path="/customer/notifications" element={<NotificationsPage />} />
+                      <Route path="/customer/settings" element={<SettingsPage />} />
+                      <Route path="/customer/orders" element={<CustomerOrdersPage />} />
+                      <Route path="/customer/orders/:orderId" element={<OrderDetailsPage />} />
+                      <Route path="/customer/messages" element={<ChatPage />} />   {/* CustomerLayout ke andar */}
+
+                    </Route>
+                  </Route>
+
+                  <Route element={<RoleRoute allowedRoles={["seller"]} />}>
+                    <Route element={<SellerLayout />}>
+                      <Route path="/seller" element={<SellerOverviewPage />} />
+                      <Route path="/seller/products" element={<SellerProductsPage />} />
+                      <Route path="/seller/orders" element={<SellerOrdersPage />} />
+                      <Route path="/seller/store" element={<SellerStorePage />} />
+                      <Route path="/seller/settings" element={<SellerSettingsPage />} />
+                      <Route path="/seller/products/add" element={<AddProductPage />} />
+                      <Route path="/seller/products/:id" element={<ProductViewPage />} />
+                      <Route path="/seller/products/:id/edit" element={<EditProductPage />} />
+                      <Route path="/seller/orders/:id" element={<SellerOrderDetailPage />} />
+                      <Route path="/seller/notifications" element={<NotificationsPage />} />  
+                       {/* inside the SellerLayout block */}
+<Route path="/seller/messages" element={<ChatPage />} />     {/* SellerLayout ke andar */}
+
+                    </Route>
+                  </Route>
+                  <Route element={<RoleRoute allowedRoles={["admin"]} />}>
+                    <Route element={<AdminLayout />}>
+                      <Route path="/admin" element={<AdminOverviewPage />} />
+                      <Route path="/admin/users" element={<AdminUsersPage />} />
+                      <Route path="/admin/sellers" element={<AdminSellersPage />} />
+                      <Route path="/admin/products" element={<AdminProductsPage />} />
+                      <Route path="/admin/orders" element={<AdminOrdersPage />} />
+                      <Route path="/admin/categories" element={<AdminCategoriesPage />} />
+                      <Route path="/admin/settings" element={<AdminSettingsPage />} />
+                      <Route path="/admin/products/:id" element={<AdminProductDetailPage />} />
+                      <Route path="/admin/orders/:id" element={<AdminOrderDetailPage />} />
+                      <Route path="/admin/users/:id" element={<AdminUserDetailPage />} />
+                      <Route path="/admin/notifications" element={<NotificationsPage />} />    {/* inside the AdminLayout block */}
+<Route path="/admin/messages" element={<ChatPage />} />      {/* AdminLayout ke andar */}
+<Route path="/admin/reports" element={<AdminReportsPage />} />
+<Route path="/admin/reports/:id" element={<AdminReportDetailPage />} />
+
+
+                    </Route>
                   </Route>
                 </Route>
 
-                <Route element={<RoleRoute allowedRoles={["seller"]} />}>
-                  <Route element={<SellerLayout />}>
-                    <Route path="/seller" element={<SellerOverviewPage />} />
-                    <Route path="/seller/products" element={<SellerProductsPage />} />
-                    <Route path="/seller/orders" element={<SellerOrdersPage />} />
-                    <Route path="/seller/store" element={<SellerStorePage />} />
-                    <Route path="/seller/settings" element={<SellerSettingsPage />} />
-                    <Route path="/seller/products/add" element={<AddProductPage />} />
-                    <Route path="/seller/products/:id" element={<ProductViewPage />} />
-                    <Route path="/seller/products/:id/edit" element={<EditProductPage />} />
-                    <Route path="/seller/orders/:id" element={<SellerOrderDetailPage />} />
+                <Route path="*" element={<Navigate to="/" replace />} />
+              </Routes>
+              <CartDrawer />
+              <CartToast />
 
-                  </Route>
-                </Route>
-                <Route element={<RoleRoute allowedRoles={["admin"]} />}>
-                  <Route element={<AdminLayout />}>
-                    <Route path="/admin" element={<AdminOverviewPage />} />
-                    <Route path="/admin/users" element={<AdminUsersPage />} />
-                    <Route path="/admin/sellers" element={<AdminSellersPage />} />
-                    <Route path="/admin/products" element={<AdminProductsPage />} />
-                    <Route path="/admin/orders" element={<AdminOrdersPage />} />
-                    <Route path="/admin/categories" element={<AdminCategoriesPage />} />
-                    <Route path="/admin/settings" element={<AdminSettingsPage />} />
-                    <Route path="/admin/products/:id" element={<AdminProductDetailPage />} />
-                    <Route path="/admin/orders/:id" element={<AdminOrderDetailPage />} />
-                    <Route path="/admin/users/:id" element={<AdminUserDetailPage />} />
-                  </Route>
-                </Route>
-              </Route>
+            </BrowserRouter>
+          </CartProvider>
+        </NotificationProvider>
+          </ChatProvider>
 
-              <Route path="*" element={<Navigate to="/" replace />} />
-            </Routes>
-            <CartDrawer />
-            <CartToast />
-
-          </BrowserRouter>
-        </CartProvider>
       </AuthProvider>
     </ToastProvider>
   );
