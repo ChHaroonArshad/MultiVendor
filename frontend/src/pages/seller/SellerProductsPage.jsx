@@ -6,7 +6,7 @@ import { ConfirmDeleteModal } from "../../components/seller/ConfirmDeleteModal";
 import { ProductActionsMenu } from "../../components/seller/ProductActionsMenu";
 import { Spinner } from "../../components/ui/Spinner";
 import { useToast } from "../../context/ToastContext";
-
+import { StoreSetupBanner } from "../../components/seller/StoreSetupBanner";
 const FILTERS = ["All", "Published", "Pending", "Draft", "Rejected", "Out-of-stock"];
 
 function computeDisplayStatus(p) {
@@ -130,7 +130,9 @@ export function SellerProductsPage() {
   };
 
   return (
+    
     <div className="animate-fade-slide-up">
+      <StoreSetupBanner />
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
         <div>
           <h1 className="text-2xl sm:text-3xl font-serif text-[#111111] mb-1">My Products</h1>

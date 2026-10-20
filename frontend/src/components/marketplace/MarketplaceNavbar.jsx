@@ -9,6 +9,7 @@ import { categories } from "../../data/marketplaceData";
 import { getCategoryVisual } from "../../data/homeContent";
 import { Avatar } from "../ui/Avatar";
 import { useEffect, useRef } from "react";
+import { WishlistHeaderLink } from "../wishlist/WishlistHeaderLink";
 const CENTER_LINKS = [
   { label: "Home", to: "/" },
   // { label: "Products", to: "/#featured-products" },
@@ -21,7 +22,7 @@ import { NotificationBell } from "../notifications/NotificationBell";
 import { MessagesButton  } from "../chat/MessagesButton"; 
 
 const iconBtn =
-  "relative w-10 h-10 rounded-full flex items-center justify-center text-[#4A4A4A] hover:bg-[#F3F1EC] hover:text-[#111111] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C9A227]/40 transition-colors";
+  "relative cursor-pointer w-10 h-10 rounded-full flex items-center justify-center text-[#4A4A4A] hover:bg-[#F3F1EC] hover:text-[#111111] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C9A227]/40 transition-colors";
 
 function SearchBox({ onDone, className = "" }) {
   const navigate = useNavigate();
@@ -118,11 +119,11 @@ export function MarketplaceNavbar() {
             </>
           ) : (
             <>
-              <Link to="/customer" state={{ tab: "wishlist" }} aria-label="Wishlist" className={iconBtn}><Icon name="heart" size={18} /></Link>
+             <WishlistHeaderLink />
               <button onClick={openDrawer} aria-label="Cart" className={iconBtn}>
                 <Icon name="bag" size={18} />
                 {totalCount > 0 && (
-                  <span className="absolute top-1 right-1 min-w-4 h-4 px-1 text-[10px] bg-[#C9A227] text-white rounded-full flex items-center justify-center animate-badge-pop">{totalCount}</span>
+                  <span className=" absolute top-1 right-1 min-w-4 h-4 px-1 text-[10px] bg-[#C9A227] text-white rounded-full flex items-center justify-center animate-badge-pop">{totalCount}</span>
                 )}
               </button>
              <NotificationBell />
@@ -131,7 +132,7 @@ export function MarketplaceNavbar() {
           )}
         </div>
 
-        <button onClick={() => setMobileOpen(true)} aria-label="Open menu" className={`lg:hidden ml-auto ${iconBtn}`}>
+        <button onClick={() => setMobileOpen(true)}  aria-label="Open menu" className={` cursor-pointer lg:hidden ml-auto ${iconBtn}`}>
           <Icon name="menu" size={20} />
         </button>
       </div>
@@ -139,7 +140,7 @@ export function MarketplaceNavbar() {
       {mobileOpen && (
         <div className="lg:hidden fixed inset-0 z-40 bg-black/40" onClick={() => setMobileOpen(false)}>
           <div className="absolute top-0 right-0 h-full w-72 bg-white shadow-xl p-5 overflow-y-auto animate-fade-slide-up" onClick={(e) => e.stopPropagation()}>
-            <div className="flex items-center justify-between mb-5">
+            <div className="flex items-center justify-between mb-5 cursor-pointer">
               <BrandMark />
               <button onClick={() => setMobileOpen(false)} aria-label="Close menu" className={iconBtn}><Icon name="close" size={18} /></button>
             </div>
@@ -151,15 +152,15 @@ export function MarketplaceNavbar() {
             </nav>
             {!user ? (
               <div className="flex flex-col gap-2">
-                <Link to="/login" onClick={() => setMobileOpen(false)} className="text-center border border-[#E8E5DF] py-2.5 rounded-full text-sm">Sign In</Link>
-                <Link to="/register" onClick={() => setMobileOpen(false)} className="text-center bg-[#111111] text-white py-2.5 rounded-full text-sm">Create Account</Link>
+                <Link to="/login" onClick={() => setMobileOpen(false)} className="text-center cursor-pointer border border-[#E8E5DF] py-2.5 rounded-full text-sm">Sign In</Link>
+                <Link to="/register" onClick={() => setMobileOpen(false)} className=" cursor-pointer text-center bg-[#111111] text-white py-2.5 rounded-full text-sm">Create Account</Link>
               </div>
             ) : (
               <div className="flex flex-col gap-1 border-t border-[#E8E5DF] pt-4">
-                <Link to={getHomeForRole(user.role)} onClick={() => setMobileOpen(false)} className="px-3 py-2.5 text-sm text-[#111111] hover:bg-[#FAF9F6] rounded-xl">
+                <Link to={getHomeForRole(user.role)} onClick={() => setMobileOpen(false)} className="px-3 py-2.5 text-sm text-[#111111] hover:bg-[#FAF9F6] rounded-xl cursor-pointer">
                   {user.role === "seller" ? "Seller Dashboard" : "My Dashboard"}
                 </Link>
-                <button onClick={logout} className="text-left px-3 py-2.5 text-sm text-red-500 hover:bg-red-50 rounded-xl">Log out</button>
+                <button onClick={logout} className="cursor-pointer  text-left px-3 py-2.5 text-sm text-red-500 hover:bg-red-50 rounded-xl">Log out</button>
               </div>
             )}
           </div>
@@ -205,7 +206,7 @@ function ProfileMenu({ user, logout, open, setOpen }) {
         aria-label="Account menu"
         aria-haspopup="menu"
         aria-expanded={open}
-        className="w-9 h-9 rounded-full bg-[#111111] text-white text-xs font-medium flex items-center justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C9A227]/50"
+        className=" cursor-pointer w-9 h-9 rounded-full bg-[#111111] text-white text-xs font-medium flex items-center justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C9A227]/50"
       >
         {user?.name?.charAt(0).toUpperCase() || "U"}
       </button>
@@ -222,7 +223,7 @@ function ProfileMenu({ user, logout, open, setOpen }) {
             </Link>
           ))}
           <Link to="/help" onClick={() => setOpen(false)} className="block px-4 py-2 text-sm text-[#111111] hover:bg-[#FAFAFA]">Help & Support</Link>
-          <button role="menuitem" onClick={() => { setOpen(false); logout(); }} className="block w-full text-left px-4 py-2 text-sm text-red-500 hover:bg-red-50">
+          <button role="menuitem" onClick={() => { setOpen(false); logout(); }} className="cursor-pointer block w-full text-left px-4 py-2 text-sm text-red-500 hover:bg-red-50">
             Log out
           </button>
         </div>

@@ -57,3 +57,18 @@ export const getUnreadCount = asyncHandler(async (req, res) => {
   const result = await chatService.getUnreadCount(req.user);
   sendSuccessResponse(res, 200, "Unread count fetched", result);
 });
+export const editMessage = asyncHandler(async (req, res) => {
+  const result = await chatService.editMessage(req.user, req.params.id, { text: req.body.text });
+  sendSuccessResponse(res, 200, "Message edited", result);
+});
+
+export const deleteConversation = asyncHandler(async (req, res) => {
+  const result = await chatService.deleteConversationForMe(req.user, req.params.id);
+  sendSuccessResponse(res, 200, "Conversation deleted", result);
+});
+
+export const reportConversation = asyncHandler(async (req, res) => {
+  const { category, details } = req.body;
+  const result = await chatService.createReport(req.user, req.params.id, { category, details });
+  sendSuccessResponse(res, 201, "Report sent", result);
+});

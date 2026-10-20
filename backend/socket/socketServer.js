@@ -7,7 +7,7 @@ import { Conversation } from "../models/Conversation.js";
 import { getSide, otherSideOf, idOf } from "../utils/chatSides.js";
 
 let io = null;
-const onlineCounts = new Map(); // userId -> number of open sockets (several tabs = several sockets)
+const onlineCounts = new Map(); // userId -> number of open sockets
 
 function parseCookies(header = "") {
   return header.split(";").reduce((acc, part) => {
@@ -23,8 +23,15 @@ export function isUserOnline(userId) {
   return (onlineCounts.get(String(userId)) || 0) > 0;
 }
 
+// "Delivered" means the other side has at least one connected device right now.
+export function isSideOnline(conversation, side) {
+  if (!io) return false;
+  if (side === "admin") return (io.sockets.adapter.rooms.get("admins")?.size || 0) > 0;
+  return isUserOnline(idOf(conversation[side]));
+}
+
 export function emitToSide(conversation, side, event, payload) {
-  if (!io) return; // socket server not started (e.g. scripts): chat still works over REST
+  if (!io) return;
   if (side === "admin") io.to("admins").emit(event, payload);
   else io.to(`user:${idOf(conversation[side])}`).emit(event, payload);
 }
@@ -33,7 +40,6 @@ export function disconnectUserSockets(userId) {
   io?.in(`user:${userId}`).disconnectSockets(true);
 }
 
-// Only the people this user chats with directly are told about presence.
 async function broadcastPresence(userId, online) {
   try {
     const conversations = await Conversation.find({
@@ -53,7 +59,6 @@ async function broadcastPresence(userId, online) {
 export function initSocket(httpServer) {
   io = new Server(httpServer, { cors: { origin: env.clientUrl, credentials: true } });
 
-  // Same cookie the REST API uses, so there is no second login system.
   io.use(async (socket, next) => {
     try {
       const token = parseCookies(socket.handshake.headers.cookie).accessToken;
@@ -80,19 +85,24 @@ export function initSocket(httpServer) {
     onlineCounts.set(userId, count);
     if (count === 1) broadcastPresence(userId, true);
 
+    // Messages sent while this user was offline become "delivered" now (dynamic import avoids a circular import).
+    import("../services/chatService.js")
+      .then(({ markDeliveredOnConnect }) => markDeliveredOnConnect({ userId, role }))
+      .catch((err) => console.error("Delivery sync failed:", err.message));
+
     socket.on("typing", async (payload) => {
       try {
         const { conversationId, isTyping } = payload || {};
         if (!mongoose.Types.ObjectId.isValid(conversationId)) return;
 
         const now = Date.now();
-        if (isTyping && now - (socket.data.lastTypingAt || 0) < 700) return; // throttle
+        if (isTyping && now - (socket.data.lastTypingAt || 0) < 700) return;
         socket.data.lastTypingAt = now;
 
         const conversation = await Conversation.findById(conversationId).select("type customer seller").lean();
         if (!conversation) return;
         const side = getSide(conversation, { userId, role });
-        if (!side) return; // not a member of this conversation
+        if (!side) return;
 
         emitToSide(conversation, otherSideOf(conversation, side), "typing", {
           conversationId: String(conversationId),
@@ -101,7 +111,7 @@ export function initSocket(httpServer) {
           isTyping: Boolean(isTyping),
         });
       } catch {
-        // typing is cosmetic, never worth an error
+        // typing is cosmetic
       }
     });
 

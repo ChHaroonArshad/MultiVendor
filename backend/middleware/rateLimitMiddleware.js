@@ -141,3 +141,19 @@ export const supportLimiter = rateLimit({
   legacyHeaders: false,
   handler: (req, res, next) => next(createApiError(429, "You've sent several messages already. Please try again later.")),
 });
+
+
+
+
+
+
+
+
+
+export const wishlistLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 120,
+  standardHeaders: true,
+  legacyHeaders: false,
+  handler: (req, res, next) => next(createApiError(429, "Too many requests. Please slow down.")),
+});

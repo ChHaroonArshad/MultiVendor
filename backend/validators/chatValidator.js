@@ -24,3 +24,17 @@ export const sendMessageSchema = z
     message: "contextKind and contextId must be sent together",
     path: ["contextId"],
   });
+
+
+
+
+
+
+  export const editMessageSchema = z.object({ text: z.string().max(2000) }).strict();
+
+export const reportConversationSchema = z
+  .object({
+    category: z.enum(["harassment", "scam", "spam", "inappropriate", "off_platform", "other"]),
+    details: z.string().trim().max(500).default(""),
+  })
+  .strict();

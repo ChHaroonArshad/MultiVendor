@@ -10,7 +10,7 @@ import { Pagination } from "../../components/ui/Pagination";
 import { Spinner } from "../../components/ui/Spinner";
 import { shortOrderId } from "../../utils/orderUtils";
 import { REASON_LABELS } from "../../data/reportOptions";
-
+import { ChevronDown } from "lucide-react";
 const LIMIT = 10;
 
 const STATUS_OPTIONS = [
@@ -128,25 +128,76 @@ export function AdminReportsPage() {
         </div>
       )}
 
-      <div className="flex flex-col lg:flex-row gap-3">
-        <div className="relative flex-1 min-w-0">
-          <input
-            value={searchInput}
-            onChange={handleSearchChange}
-            placeholder="Search by product, store, reporter or email"
-            className="w-full pl-4 pr-9 py-2.5 rounded-full border border-[#E5E5E5] bg-white text-sm placeholder:text-[#B0B0B0] focus:outline-none focus:ring-2 focus:ring-[#C9A227]/15 focus:border-[#C9A227] transition-all"
-          />
-          {searchInput && (
-            <button onClick={clearSearch} aria-label="Clear search" className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-[#B0B0B0] hover:text-[#111111]">✕</button>
-          )}
+    
+        <div className="flex flex-col lg:flex-row gap-3">
+          <div className="relative flex-1 min-w-0">
+            <input
+              value={searchInput}
+              onChange={handleSearchChange}
+              placeholder="Search by product, store, reporter or email"
+              className="w-full pl-4 pr-9 py-2.5 rounded-full border border-[#E5E5E5] bg-white text-sm placeholder:text-[#B0B0B0] focus:outline-none focus:ring-2 focus:ring-[#C9A227]/15 focus:border-[#C9A227] transition-all"
+            />
+            {searchInput && (
+              <button
+                onClick={clearSearch}
+                aria-label="Clear search"
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-[#B0B0B0] hover:text-[#111111]"
+              >
+                ✕
+              </button>
+            )}
+          </div>
+
+       <div className="relative lg:w-48">
+  <select
+    value={status}
+    onChange={(e) => {
+      setStatus(e.target.value);
+      setPage(1);
+    }}
+    aria-label="Filter by status"
+    className={`${selectClass} w-full appearance-none pr-10`}
+  >
+    {STATUS_OPTIONS.map((o) => (
+      <option key={o.value} value={o.value}>
+        {o.label}
+      </option>
+    ))}
+  </select>
+
+  <ChevronDown
+    size={16}
+    strokeWidth={1.8}
+    className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-[#111111]"
+  />
+</div>
+
+<div className="relative lg:w-48">
+  <select
+    value={type}
+    onChange={(e) => {
+      setType(e.target.value);
+      setPage(1);
+    }}
+    aria-label="Filter by type"
+    className={`${selectClass} w-full appearance-none pr-10`}
+  >
+    {TYPE_OPTIONS.map((o) => (
+      <option key={o.value} value={o.value}>
+        {o.label}
+      </option>
+    ))}
+  </select>
+
+  <ChevronDown
+    size={16}
+    strokeWidth={1.8}
+    className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-[#111111]"
+  />
+</div>
+         
         </div>
-        <select value={status} onChange={(e) => { setStatus(e.target.value); setPage(1); }} aria-label="Filter by status" className={`${selectClass} lg:w-48`}>
-          {STATUS_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
-        </select>
-        <select value={type} onChange={(e) => { setType(e.target.value); setPage(1); }} aria-label="Filter by type" className={`${selectClass} lg:w-48`}>
-          {TYPE_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
-        </select>
-      </div>
+
 
       {loading && !hasLoaded && (
         <div className="border border-[#E5E5E5] rounded-2xl bg-white py-16 flex items-center justify-center gap-2">

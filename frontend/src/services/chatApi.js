@@ -72,3 +72,23 @@ export async function getChatUnreadCount() {
   const res = await apiFetch("/chat/unread-count", { method: "GET" });
   return parseOrThrow(res, "Failed to load unread count");
 }
+
+
+
+
+
+
+export async function editChatMessage(id, text) {
+  const res = await apiFetch(`/chat/messages/${id}`, { method: "PATCH", body: JSON.stringify({ text }) });
+  return parseOrThrow(res, "Failed to edit the message");
+}
+
+export async function deleteConversation(id) {
+  const res = await apiFetch(`/chat/conversations/${id}`, { method: "DELETE" });
+  return parseOrThrow(res, "Failed to delete the conversation");
+}
+
+export async function reportConversation(id, { category, details }) {
+  const res = await apiFetch(`/chat/conversations/${id}/report`, { method: "POST", body: JSON.stringify({ category, details }) });
+  return parseOrThrow(res, "Failed to send the report");
+}

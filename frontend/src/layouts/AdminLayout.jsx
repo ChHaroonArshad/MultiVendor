@@ -5,6 +5,7 @@ import { adminNavItems } from "../config/adminNav";
 import { Avatar } from "../components/ui/Avatar";
 import { NotificationBell } from "../components/notifications/NotificationBell";
 import { MessagesButton } from "../components/chat/MessagesButton"
+import { UnreadPill } from "../components/chat/UnreadPill";
 export function AdminLayout() {
   const { user, logout } = useAuth();
   const [menuOpen, setMenuOpen] = useState(false);
@@ -23,7 +24,8 @@ export function AdminLayout() {
               >
          <span className="flex items-center gap-2.5">
   {item.icon && <item.icon size={16} />}
-  {item.label}
+<span>{item.label}</span>
+{item.key === "messages" && <UnreadPill />}
 </span>
               </NavLink>
             ))}

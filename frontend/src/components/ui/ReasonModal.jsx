@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Spinner } from "./Spinner";
 
-export function ReasonModal({ open, title, description, placeholder = "Write the reason here...", confirmLabel = "Submit", submitting = false, onSubmit, onCancel }) {
+export function ReasonModal({ open, title, description, placeholder = "Write the reason here...", confirmLabel = "Submit", tone = "danger", submitting = false, onSubmit, onCancel }) {
   const [reason, setReason] = useState("");
   const [error, setError] = useState("");
 
@@ -38,7 +38,7 @@ export function ReasonModal({ open, title, description, placeholder = "Write the
         />
         {error && <p className="text-xs text-red-500">{error}</p>}
         <div className="flex flex-col gap-2 mt-3">
-          <button onClick={handleSubmit} disabled={submitting} className="w-full bg-red-500 text-white py-2.5 rounded-full text-sm font-medium hover:opacity-90 transition-all disabled:opacity-50 flex items-center justify-center gap-2">
+          <button onClick={handleSubmit} disabled={submitting}className={`w-full text-white py-2.5 rounded-full text-sm font-medium hover:opacity-90 transition-all disabled:opacity-50 flex items-center justify-center gap-2 ${tone === "danger" ? "bg-red-500" : "bg-[#111111]"}`}>
             {submitting && <Spinner size={13} />}
             {submitting ? "Please wait..." : confirmLabel}
           </button>

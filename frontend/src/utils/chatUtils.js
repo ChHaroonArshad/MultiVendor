@@ -56,3 +56,14 @@ export function getQuickReplies(viewerRole, conversationType) {
   }
   return ["Thanks for reaching out. How can I help?", "We're looking into this now.", "Could you share more details?"];
 }
+
+export const EDIT_WINDOW_MS = 15 * 60 * 1000;
+
+export const CATEGORY_LABEL = {
+  harassment: "Harassment or abuse",
+  scam: "Scam or fraud",
+  spam: "Spam",
+  inappropriate: "Inappropriate content",
+  off_platform: "Deal outside the marketplace",
+  other: "Something else",
+};

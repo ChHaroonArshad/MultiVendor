@@ -4,6 +4,8 @@ import { User } from "../models/User.js";
 import { Product } from "../models/Product.js";
 import { uploadBufferToCloudinary, deleteFromCloudinary } from "../utils/cloudinaryUpload.js";
 import { createApiError } from "../utils/apiError.js";
+import { getStoreCompletion } from "../utils/storeCompletion.js";
+
 
 const IMAGE_KINDS = ["logo", "banner"];
 const STORE_FOLDER = "marketplace/stores";
@@ -161,4 +163,17 @@ export async function getPublicStore(sellerId) {
     productCount,
     memberSince: seller.createdAt,
   };
+}
+
+
+
+
+
+
+export async function getStoreStatus(sellerId) {
+  const seller = await User.exists({ _id: sellerId, role: "seller", status: "active" });
+  if (!seller) throw createApiError(401, "Account not found or suspended.");
+
+  const profile = await SellerProfile.findOne({ seller: sellerId }).select("description category logo").lean();
+  return getStoreCompletion(profile);
 }

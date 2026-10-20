@@ -3,22 +3,23 @@ import { useAuth } from "../../hooks/useAuth";
 import { useChat } from "../../context/ChatContext";
 import { useToast } from "../../context/ToastContext";
 import {
-  getMessages, sendChatMessage, markConversationRead, blockConversation, unblockConversation, deleteChatMessage,
+  getMessages, sendChatMessage, markConversationRead, blockConversation, unblockConversation,
+  deleteChatMessage, editChatMessage, deleteConversation,
 } from "../../services/chatApi";
 import { ChatAvatar } from "./ChatAvatar";
 import { MessageBubble } from "./MessageBubble";
 import { MessageComposer } from "./MessageComposer";
 import { TypingIndicator } from "./TypingIndicator";
+import { ReportConversationModal } from "./ReportConversationModal";
 import { RowActionsMenu } from "../ui/RowActionsMenu";
 import { ConfirmActionModal } from "../ui/ConfirmActionModal";
 import { Spinner } from "../ui/Spinner";
-import { dayLabel, isSameDay, getQuickReplies, newClientId } from "../../utils/chatUtils";
+import { dayLabel, isSameDay, getQuickReplies, newClientId, EDIT_WINDOW_MS } from "../../utils/chatUtils";
 
 const PAGE_SIZE = 30;
 const GROUP_GAP_MS = 5 * 60 * 1000;
 const isTemp = (m) => String(m._id).startsWith("tmp-");
 
-// Replaces a message that is already here (matched by id, or by the clientId of an optimistic copy).
 function upsertMessage(list, incoming) {
   const byId = list.findIndex((m) => m._id === incoming._id);
   if (byId !== -1) {
@@ -35,15 +36,12 @@ function upsertMessage(list, incoming) {
   return [...list, incoming];
 }
 
-export function ChatThread({ conversation, onBack, onPatch, pendingContext, onClearContext }) {
+export function ChatThread({ conversation, onBack, onPatch, onRemoved, pendingContext, onClearContext }) {
   const { user } = useAuth();
   const { subscribe, emitTyping } = useChat();
   const { showToast } = useToast();
 
-  const me = useMemo(
-    () => ({ id: String(user._id ?? user.id), name: user.name, avatar: user.avatar || null }),
-    [user]
-  );
+  const me = useMemo(() => ({ id: String(user._id ?? user.id), name: user.name, avatar: user.avatar || null }), [user]);
   const conversationId = conversation._id;
   const mySide = conversation.mySide;
   const counterpart = conversation.counterpart;
@@ -60,8 +58,12 @@ export function ChatThread({ conversation, onBack, onPatch, pendingContext, onCl
   const [unreadAtLoad, setUnreadAtLoad] = useState(0);
   const [lightbox, setLightbox] = useState(null);
   const [deleteTarget, setDeleteTarget] = useState(null);
+  const [editTarget, setEditTarget] = useState(null);
   const [blockOpen, setBlockOpen] = useState(false);
   const [blocking, setBlocking] = useState(false);
+  const [reportOpen, setReportOpen] = useState(false);
+  const [removeOpen, setRemoveOpen] = useState(false);
+  const [removing, setRemoving] = useState(false);
 
   const scrollRef = useRef(null);
   const stickRef = useRef(true);
@@ -72,9 +74,7 @@ export function ChatThread({ conversation, onBack, onPatch, pendingContext, onCl
   const failedPayloadsRef = useRef(new Map());
   const conversationRef = useRef(conversation);
 
-  useEffect(() => {
-    conversationRef.current = conversation;
-  });
+  useEffect(() => { conversationRef.current = conversation; });
 
   const markReadSoon = useCallback(() => {
     clearTimeout(readTimerRef.current);
@@ -84,23 +84,15 @@ export function ChatThread({ conversation, onBack, onPatch, pendingContext, onCl
         await markConversationRead(conversationId);
         onPatch(conversationId, { unread: 0 });
       } catch {
-        // the next incoming message or window focus will try again
+        // retried on the next message or window focus
       }
     }, 250);
   }, [conversationId, onPatch]);
 
-  // ---- load the newest page whenever another conversation is opened ----
   useEffect(() => {
     let cancelled = false;
-    setMessages([]);
-    setHasMore(false);
-    setLoading(true);
-    setError("");
-    setTyping(false);
-    setNewBelow(0);
-    setShowJump(false);
-    setFirstUnreadId(null);
-    setUnreadAtLoad(0);
+    setMessages([]); setHasMore(false); setLoading(true); setError(""); setTyping(false);
+    setNewBelow(0); setShowJump(false); setFirstUnreadId(null); setUnreadAtLoad(0); setEditTarget(null);
     stickRef.current = true;
     scrollModeRef.current = "auto";
 
@@ -118,18 +110,14 @@ export function ChatThread({ conversation, onBack, onPatch, pendingContext, onCl
       .catch((err) => { if (!cancelled) setError(err.message || "Failed to load messages."); })
       .finally(() => { if (!cancelled) setLoading(false); });
 
-    return () => {
-      cancelled = true;
-      clearTimeout(readTimerRef.current);
-    };
+    return () => { cancelled = true; clearTimeout(readTimerRef.current); };
   }, [conversationId, mySide, markReadSoon]);
 
-  // ---- keep the view where it should be ----
   useLayoutEffect(() => {
     const el = scrollRef.current;
     if (!el) return;
     if (restoreRef.current != null) {
-      el.scrollTop = el.scrollHeight - restoreRef.current; // older messages were added on top: stay on the same message
+      el.scrollTop = el.scrollHeight - restoreRef.current;
       restoreRef.current = null;
       return;
     }
@@ -180,9 +168,8 @@ export function ChatThread({ conversation, onBack, onPatch, pendingContext, onCl
   useEffect(() => {
     const offNew = subscribe("message:new", ({ message }) => {
       if (message.conversation !== conversationId) return;
-      const incoming = message.senderSide !== mySide;
       setMessages((prev) => upsertMessage(prev, { ...message, isNew: true }));
-      if (!incoming) return;
+      if (message.senderSide === mySide) return;
       setTyping(false);
       if (stickRef.current && document.visibilityState === "visible") markReadSoon();
       else setNewBelow((n) => n + 1);
@@ -190,14 +177,22 @@ export function ChatThread({ conversation, onBack, onPatch, pendingContext, onCl
 
     const offRead = subscribe("messages:read", ({ conversationId: id, readerSide, at }) => {
       if (id !== conversationId || readerSide === mySide) return;
-      setMessages((prev) => prev.map((m) => (m.senderSide === mySide && !m.readAt ? { ...m, readAt: at } : m)));
+      setMessages((prev) => prev.map((m) => (m.senderSide === mySide && !m.readAt ? { ...m, deliveredAt: m.deliveredAt || at, readAt: at } : m)));
+    });
+
+    const offDelivered = subscribe("messages:delivered", ({ conversationId: id, at }) => {
+      if (id !== conversationId) return;
+      setMessages((prev) => prev.map((m) => (m.senderSide === mySide && !m.deliveredAt && !m.pending ? { ...m, deliveredAt: at } : m)));
+    });
+
+    const offEdited = subscribe("message:edited", ({ conversationId: id, message }) => {
+      if (id !== conversationId) return;
+      setMessages((prev) => prev.map((m) => (m._id === message._id ? { ...m, ...message } : m)));
     });
 
     const offDeleted = subscribe("message:deleted", ({ conversationId: id, messageId }) => {
       if (id !== conversationId) return;
-      setMessages((prev) =>
-        prev.map((m) => (m._id === messageId ? { ...m, deleted: true, text: "", image: null, context: null } : m))
-      );
+      setMessages((prev) => prev.map((m) => (m._id === messageId ? { ...m, deleted: true, text: "", image: null, context: null } : m)));
     });
 
     const offTyping = subscribe("typing", ({ conversationId: id, side, isTyping }) => {
@@ -208,7 +203,7 @@ export function ChatThread({ conversation, onBack, onPatch, pendingContext, onCl
     });
 
     return () => {
-      offNew(); offRead(); offDeleted(); offTyping();
+      offNew(); offRead(); offDelivered(); offEdited(); offDeleted(); offTyping();
       clearTimeout(typingTimerRef.current);
     };
   }, [subscribe, conversationId, mySide, markReadSoon]);
@@ -244,7 +239,8 @@ export function ChatThread({ conversation, onBack, onPatch, pendingContext, onCl
       sender: { _id: me.id, name: me.name, avatar: me.avatar },
       type: image ? "image" : "text", text, image: image ? image.previewUrl : null,
       context: context ? { kind: context.kind, refId: context.refId, title: context.title, subtitle: context.subtitle, image: context.image } : null,
-      readAt: null, deleted: false, createdAt: new Date().toISOString(), pending: true, isNew: true,
+      deliveredAt: null, readAt: null, edited: false, deleted: false,
+      createdAt: new Date().toISOString(), pending: true, isNew: true,
     };
     stickRef.current = true;
     setMessages((prev) => [...prev, temp]);
@@ -255,7 +251,22 @@ export function ChatThread({ conversation, onBack, onPatch, pendingContext, onCl
     const payload = failedPayloadsRef.current.get(message.clientId);
     if (!payload) return;
     setMessages((prev) => prev.map((m) => (m.clientId === message.clientId ? { ...m, pending: true, failed: false } : m)));
-    deliver(message.clientId, payload); // same clientId, so the server never creates a duplicate
+    deliver(message.clientId, payload);
+  };
+
+  const handleSubmitEdit = async (text) => {
+    const target = editTarget;
+    if (!target) return;
+    setEditTarget(null);
+    if (text === target.text) return;
+    setMessages((prev) => prev.map((m) => (m._id === target._id ? { ...m, text, edited: true } : m)));
+    try {
+      const res = await editChatMessage(target._id, text);
+      setMessages((prev) => prev.map((m) => (m._id === target._id ? { ...m, ...res.data.message } : m)));
+    } catch (err) {
+      setMessages((prev) => prev.map((m) => (m._id === target._id ? target : m)));
+      showToast(err.message || "Couldn't edit the message.", "error");
+    }
   };
 
   const handleDelete = async () => {
@@ -285,13 +296,25 @@ export function ChatThread({ conversation, onBack, onPatch, pendingContext, onCl
     }
   };
 
-  // ---- rows: day separators, "new messages" divider, grouping ----
+  const handleRemoveConversation = async () => {
+    setRemoving(true);
+    try {
+      await deleteConversation(conversationId);
+      showToast("Conversation deleted");
+      onRemoved(conversationId);
+    } catch (err) {
+      showToast(err.message || "Couldn't delete the conversation.", "error");
+      setRemoving(false);
+      setRemoveOpen(false);
+    }
+  };
+
+  // ---- rows ----
   const rows = useMemo(() => {
     const senderId = (m) => m.sender?._id || m.senderSide;
     const sameGroup = (a, b) =>
       a && b && a.senderSide === b.senderSide && senderId(a) === senderId(b) &&
-      isSameDay(a.createdAt, b.createdAt) &&
-      Math.abs(new Date(b.createdAt) - new Date(a.createdAt)) < GROUP_GAP_MS;
+      isSameDay(a.createdAt, b.createdAt) && Math.abs(new Date(b.createdAt) - new Date(a.createdAt)) < GROUP_GAP_MS;
 
     const out = [];
     messages.forEach((m, i) => {
@@ -304,31 +327,35 @@ export function ChatThread({ conversation, onBack, onPatch, pendingContext, onCl
     return out;
   }, [messages, firstUnreadId]);
 
-  const isFromMe = (m) => m.senderSide === mySide; // in a support inbox every admin counts as "my side"
-  const statusLine = typing
-    ? "typing..."
-    : counterpart.role === "support"
-    ? "We usually reply within a day"
-    : conversation.type === "support"
-    ? "Seller · support chat"
-    : counterpart.online
-    ? "Online"
-    : "Offline";
+  const isFromMe = (m) => m.senderSide === mySide;
+  const isMediator = (m) => m.senderSide === "admin" && conversation.type === "direct";
+  const closed = conversation.blocked || conversation.locked;
 
-  const disabledReason = conversation.blocked
+  const canEditMessage = (m) =>
+    m.sender?._id === me.id && m.type === "text" && !m.deleted && !m.pending && !m.failed && !closed &&
+    Date.now() - new Date(m.createdAt).getTime() < EDIT_WINDOW_MS;
+
+  const statusLine = typing ? "typing..." : counterpart.role === "support" ? "We usually reply within a day" : conversation.type === "support" ? "Seller · support chat" : counterpart.online ? "Online" : "Offline";
+
+  const disabledReason = conversation.locked
+    ? `This conversation was closed by Marketplace Support${conversation.lockReason ? `: ${conversation.lockReason}` : "."}`
+    : conversation.blocked
     ? conversation.blockedByMe
       ? "You blocked this person. Unblock them from the menu to chat again."
       : "This conversation is closed for replies."
     : "";
 
-  const menuItems = conversation.canBlock
-    ? [{
-        key: "block",
-        label: conversation.blockedByMe ? "Unblock this person" : "Block this person",
-        danger: !conversation.blockedByMe,
-        onClick: conversation.blockedByMe ? handleToggleBlock : () => setBlockOpen(true),
-      }]
-    : [];
+  const menuItems = [];
+  if (conversation.type === "direct") {
+    menuItems.push({ key: "report", label: "Report conversation", danger: true, onClick: () => setReportOpen(true) });
+    menuItems.push({
+      key: "block",
+      label: conversation.blockedByMe ? "Unblock this person" : "Block this person",
+      danger: !conversation.blockedByMe,
+      onClick: conversation.blockedByMe ? handleToggleBlock : () => setBlockOpen(true),
+    });
+  }
+  if (mySide !== "admin") menuItems.push({ key: "remove", label: "Delete conversation", danger: true, onClick: () => setRemoveOpen(true) });
 
   return (
     <div className="chat-slide-in flex flex-col h-full min-w-0">
@@ -346,9 +373,7 @@ export function ChatThread({ conversation, onBack, onPatch, pendingContext, onCl
 
       <div className="relative flex-1 min-h-0">
         <div ref={scrollRef} onScroll={handleScroll} className="absolute inset-0 overflow-y-auto chat-scroll px-3 sm:px-6 py-4 bg-[#FBFAF7]">
-          {loadingMore && (
-            <div className="flex justify-center py-2"><Spinner size={14} className="text-[#6B6B6B]" /></div>
-          )}
+          {loadingMore && <div className="flex justify-center py-2"><Spinner size={14} className="text-[#6B6B6B]" /></div>}
 
           {loading && (
             <div className="space-y-4 pt-2">
@@ -375,8 +400,10 @@ export function ChatThread({ conversation, onBack, onPatch, pendingContext, onCl
             </div>
           )}
 
-          {!loading && !hasMore && messages.length > 0 && (
-            <p className="text-center text-[11px] text-[#B0B0B0] pb-2">Beginning of your conversation</p>
+          {!loading && !hasMore && messages.length > 0 && <p className="text-center text-[11px] text-[#B0B0B0] pb-2">Beginning of your conversation</p>}
+
+          {!loading && conversation.type === "direct" && (
+            <p className="text-center text-[11px] text-[#B0B0B0] pb-3 px-4">🔒 Marketplace Support may review this conversation to help resolve disputes.</p>
           )}
 
           {rows.map((row) => {
@@ -401,11 +428,9 @@ export function ChatThread({ conversation, onBack, onPatch, pendingContext, onCl
             const mine = isFromMe(message);
             const fromOtherAdmin = mine && mySide === "admin" && message.sender?._id !== me.id;
             const nameLabel = first
-              ? fromOtherAdmin
-                ? `${message.sender?.name || "Admin"} (admin)`
-                : !mine && message.senderSide === "admin"
-                ? `Support · ${message.sender?.name || "Admin"}`
-                : null
+              ? fromOtherAdmin ? `${message.sender?.name || "Admin"} (admin)`
+              : !mine && message.senderSide === "admin" ? `Support · ${message.sender?.name || "Admin"}`
+              : null
               : null;
 
             return (
@@ -416,8 +441,11 @@ export function ChatThread({ conversation, onBack, onPatch, pendingContext, onCl
                 first={first}
                 last={last}
                 nameLabel={nameLabel}
+                moderator={isMediator(message)}
                 viewerRole={user.role}
+                canEdit={canEditMessage(message)}
                 canDelete={message.sender?._id === me.id && !message.pending && !message.failed}
+                onEdit={setEditTarget}
                 onDelete={setDeleteTarget}
                 onRetry={handleRetry}
                 onOpenImage={setLightbox}
@@ -429,49 +457,39 @@ export function ChatThread({ conversation, onBack, onPatch, pendingContext, onCl
         </div>
 
         {showJump && (
-          <button
-            onClick={jumpToLatest}
-            aria-label="Jump to latest message"
-            className="chat-pop absolute bottom-4 right-4 w-10 h-10 rounded-full bg-white border border-[#E5E5E5] shadow-md flex items-center justify-center hover:-translate-y-0.5 transition-all"
-          >
+          <button onClick={jumpToLatest} aria-label="Jump to latest message" className="chat-pop absolute bottom-4 right-4 w-10 h-10 rounded-full bg-white border border-[#E5E5E5] shadow-md flex items-center justify-center hover:-translate-y-0.5 transition-all">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="m6 9 6 6 6-6" /></svg>
-            {newBelow > 0 && (
-              <span className="absolute -top-1.5 -right-1.5 min-w-5 h-5 px-1 rounded-full bg-[#C9A227] text-white text-[10px] flex items-center justify-center">{newBelow}</span>
-            )}
+            {newBelow > 0 && <span className="absolute -top-1.5 -right-1.5 min-w-5 h-5 px-1 rounded-full bg-[#C9A227] text-white text-[10px] flex items-center justify-center">{newBelow}</span>}
           </button>
         )}
       </div>
 
       <MessageComposer
-        disabled={conversation.blocked}
+        disabled={closed}
         disabledReason={disabledReason}
         quickReplies={getQuickReplies(user.role, conversation.type)}
         pendingContext={pendingContext}
         onClearContext={onClearContext}
         onSend={handleSend}
         onTyping={(isTyping) => emitTyping(conversationId, isTyping)}
+        editing={editTarget}
+        onSubmitEdit={handleSubmitEdit}
+        onCancelEdit={() => setEditTarget(null)}
       />
 
+      <ConfirmActionModal open={Boolean(deleteTarget)} title="Delete this message?" message="It will be replaced by 'This message was deleted' for both of you." confirmLabel="Delete" danger onConfirm={handleDelete} onCancel={() => setDeleteTarget(null)} />
+      <ConfirmActionModal open={blockOpen} title={`Block ${counterpart.name}?`} message="Neither of you will be able to send messages in this conversation until you unblock." confirmLabel="Block" danger loading={blocking} onConfirm={handleToggleBlock} onCancel={() => setBlockOpen(false)} />
       <ConfirmActionModal
-        open={Boolean(deleteTarget)}
-        title="Delete this message?"
-        message="It will be replaced by 'This message was deleted' for both of you."
+        open={removeOpen}
+        title="Delete this conversation?"
+        message="It disappears from your list and your history is cleared. The other person keeps their copy, and Marketplace Support can still review it if a dispute is reported."
         confirmLabel="Delete"
         danger
-        onConfirm={handleDelete}
-        onCancel={() => setDeleteTarget(null)}
+        loading={removing}
+        onConfirm={handleRemoveConversation}
+        onCancel={() => setRemoveOpen(false)}
       />
-
-      <ConfirmActionModal
-        open={blockOpen}
-        title={`Block ${counterpart.name}?`}
-        message="Neither of you will be able to send messages in this conversation until you unblock."
-        confirmLabel="Block"
-        danger
-        loading={blocking}
-        onConfirm={handleToggleBlock}
-        onCancel={() => setBlockOpen(false)}
-      />
+      <ReportConversationModal open={reportOpen} conversationId={conversationId} onClose={() => setReportOpen(false)} />
 
       {lightbox && (
         <div role="dialog" aria-modal="true" className="fixed inset-0 z-[90] bg-black/75 backdrop-blur-sm flex items-center justify-center p-4 chat-slide-up" onClick={() => setLightbox(null)}>

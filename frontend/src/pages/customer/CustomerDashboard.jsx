@@ -6,13 +6,13 @@ import { useCart } from "../../hooks/useCart";
 import { useClickOutside } from "../../hooks/useClickOutside";
 import { Avatar } from "../../components/ui/Avatar";
 import {
-  mockCustomer, mockDashboardStats, mockActiveOrder, mockOrders, mockWishlist,
+  mockCustomer, mockDashboardStats, mockActiveOrder, mockOrders,
   mockProducts, mockBasket, mockActivity, mockInsights,
 } from "../../data/customerMockData";
 import { NotificationBell } from "../../components/notifications/NotificationBell";
 import { MessagesButton } from "../../components/chat/MessagesButton"
-
-
+import { WishlistHeaderLink } from "../../components/wishlist/WishlistHeaderLink";
+import { WishlistButton } from "../../components/wishlist/WishlistButton";
 const navSections = [
   {
     label: "Shopping", items: [
@@ -83,16 +83,17 @@ export function OrderTimeline({ status }) {
 }
 
 export function ProductCard({ product, onAddToBasket }) {
-  const [wishlisted, setWishlisted] = useState(false);
+ 
   return (
     <div className="group border border-[#E5E5E5] rounded-2xl overflow-hidden bg-white transition-all duration-300 hover:-translate-y-1 hover:shadow-md">
       <div className="relative h-40 overflow-hidden bg-[#FAFAFA]">
         <img src={product.image} alt={product.name} loading="lazy" className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" />
         {product.priceDropped && <span className="absolute top-2.5 left-2.5 text-[10px] uppercase bg-white/95 border border-[#E5E5E5] text-[#111111] px-2 py-1 rounded-full">Price dropped</span>}
         {product.stock === "low-stock" && <span className="absolute top-2.5 left-2.5 text-[10px] uppercase bg-white/95 border border-red-200 text-red-600 px-2 py-1 rounded-full">Low stock</span>}
-        <button type="button" onClick={() => setWishlisted((v) => !v)} aria-label="Toggle wishlist" className={`absolute top-2.5 right-2.5 w-7 h-7 rounded-full bg-white/95 border border-[#E5E5E5] flex items-center justify-center text-sm transition-colors ${wishlisted ? "text-[#C9A227]" : "text-[#6B6B6B]"}`}>
-          {wishlisted ? "♥" : "♡"}
-        </button>
+       <WishlistButton
+  product={product}
+  className="absolute cursor-pointer top-2.5 right-2.5 z-10"
+/>
       </div>
       <div className="p-3.5">
         <p className="text-sm font-medium text-[#111111] truncate">{product.name}</p>
@@ -163,7 +164,7 @@ export function CustomerLayout() {
               </div>
 
               <div className="flex items-center gap-1.5 ml-auto">
-                <Link to="/customer/wishlist" aria-label="Wishlist" className="w-10 h-10 rounded-full flex items-center justify-center text-[#6B6B6B] hover:bg-[#FAFAFA] hover:text-[#111111] transition-colors">♡</Link>
+<WishlistHeaderLink />
                 <button onClick={openDrawer} aria-label="Cart" className="relative w-10 h-10 rounded-full flex items-center justify-center text-[#6B6B6B] hover:bg-[#FAFAFA] hover:text-[#111111] transition-colors">
                   🛍️
                   {totalCount > 0 && <span className="absolute top-1 right-1 w-4 h-4 text-[10px] bg-[#C9A227] text-white rounded-full flex items-center justify-center animate-badge-pop">{totalCount}</span>}
@@ -378,7 +379,7 @@ export function CustomerDashboardHome() {
         </div>
       </div>
 
-      <section className="mb-8">
+      {/* <section className="mb-8">
         <div className="flex items-center justify-between mb-4">
           <div>
             <p className="text-sm font-medium text-[#111111]">Your Wishlist</p>
@@ -387,9 +388,9 @@ export function CustomerDashboardHome() {
           <Link to="/customer/wishlist" className="text-xs text-[#C9A227] hover:underline">View Wishlist</Link>
         </div>
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
-          {mockWishlist.slice(0, 4).map((p) => <ProductCard key={p.id} product={p} />)}
+  
         </div>
-      </section>
+      </section> */}
 
       <section className="mb-8">
         <p className="text-sm font-medium text-[#111111] mb-1">Recommended For You</p>

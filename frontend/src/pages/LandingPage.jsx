@@ -9,7 +9,7 @@ import { PurchaseBlockModal } from "../components/marketplace/PurchaseBlockModal
 import { BrandMark, Icon, SmartImage } from "../components/marketplace/marketplaceUi";
 import { getPublicProducts } from "../services/publicProductApi";
 import { transformProduct } from "../utils/transformProduct";
-import { getRecentlyViewed, clearRecentlyViewed } from "../utils/recentlyViewed";
+
 // import { categories } from "../data/marketplaceData";
 import { categories, sellerJourneySteps } from "../data/marketplaceData";
 import {
@@ -19,6 +19,8 @@ import { MarketplaceFooter } from "../components/marketplace/MarketplaceFooter";
 import { getPublicStores } from "../services/storeApi";
 import { SellerCard } from "../components/marketplace/SellerCard";
 import { SiteFooter } from "../components/marketplace/SiteFooter";
+import { useRecentlyViewed } from "../hooks/useRecentlyViewed";
+
 
 const container = "max-w-[1320px] mx-auto px-5 sm:px-8 lg:px-12";
 const sectionY = "py-12 lg:py-14";
@@ -357,11 +359,9 @@ function TrendingRow({ products, guard }) {
 }
 
 function RecentlyViewed() {
-  const [items, setItems] = useState([]);
-  useEffect(() => { setItems(getRecentlyViewed().slice(0, 6)); }, []);
+  const { items, clear } = useRecentlyViewed(6);
 
   if (items.length === 0) return null;
-
   return (
     <section className={`${container} pb-4`}>
       <div className="flex items-end justify-between gap-4 mb-5">
@@ -370,7 +370,7 @@ function RecentlyViewed() {
           <p className="text-sm text-[#6B6B6B] mt-0.5">Products you looked at recently.</p>
         </div>
         <button
-          onClick={() => { clearRecentlyViewed(); setItems([]); }}
+         onClick={clear}
           className="text-xs text-[#6B6B6B] hover:text-[#111111] underline underline-offset-2"
         >
           Clear

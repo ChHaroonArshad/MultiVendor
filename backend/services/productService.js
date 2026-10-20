@@ -3,6 +3,7 @@ import { Product } from "../models/Product.js";
 import { uploadBufferToCloudinary, deleteFromCloudinary } from "../utils/cloudinaryUpload.js";
 import { createApiError } from "../utils/apiError.js";
 import { notifyAdminsNewProduct } from "./notificationService.js";
+import { WishlistItem } from "../models/WishlistItem.js";
 
 const asString = (value) => (typeof value === "string" ? value : "");
 const escapeRegex = (text) => text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
@@ -104,6 +105,9 @@ export async function deleteProduct(sellerId, productId) {
   if (!product) throw createApiError(404, "Product not found");
 
   await Promise.all(product.images.map((img) => deleteFromCloudinary(img.publicId)));
+
+await WishlistItem.deleteMany({ product: product._id });
+
 
   return product;
 }

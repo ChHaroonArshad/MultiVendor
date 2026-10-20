@@ -4,4 +4,5 @@ export const sellerNavItems = [
   { key: "orders", label: "Orders", path: "/seller/orders" },
 //   { key: "store", label: "Store", path: "/seller/store" },
   { key: "settings", label: "Settings", path: "/seller/settings" },
+  { key: "messages", label: "Messages", path: "/seller/messages" },
 ];

@@ -9,6 +9,8 @@ export const adminNavItems = [
   { key: "categories", label: "Categories", path: "/admin/categories" },
   { key: "settings", label: "Settings", path: "/admin/settings" },
   { key: "messages", label: "Messages", path: "/admin/messages" },
+{ key: "chat-monitor", label: "Chat monitor", path: "/admin/chat-monitor" },
+  { key: "messages", label: "Messages", path: "/admin/messages" },
   {
     key: "reports",
     label: "Reports",

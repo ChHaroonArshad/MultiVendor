@@ -12,22 +12,38 @@ const lastMessageSchema = new mongoose.Schema(
   { _id: false }
 );
 
+const clearSchema = new mongoose.Schema(
+  {
+    user: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
+    at: { type: Date, required: true },
+  },
+  { _id: false }
+);
+
 const conversationSchema = new mongoose.Schema(
   {
-    // "direct:<customerId>:<sellerId>" or "support:<sellerId>". The unique key makes get-or-create race-safe.
     key: { type: String, required: true, unique: true },
     type: { type: String, enum: ["direct", "support"], required: true },
     customer: { type: mongoose.Schema.Types.ObjectId, ref: "User", default: null },
     seller: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
     lastMessage: { type: lastMessageSchema, default: null },
     lastMessageAt: { type: Date, default: null },
-    // unread counters per "side". In a support chat the admin side is shared by every admin.
     unread: {
       customer: { type: Number, default: 0 },
       seller: { type: Number, default: 0 },
       admin: { type: Number, default: 0 },
     },
     blockedBy: { type: [mongoose.Schema.Types.ObjectId], default: [] },
+    // Set by an admin moderator. While locked neither party can send (admins still can).
+    lock: {
+      by: { type: mongoose.Schema.Types.ObjectId, ref: "User", default: null },
+      reason: { type: String, default: "" },
+      at: { type: Date, default: null },
+    },
+    // "Delete conversation" is per user: hiddenFor hides it from that user's list, clears remembers
+    // from when their history starts again.
+    hiddenFor: { type: [mongoose.Schema.Types.ObjectId], default: [] },
+    clears: { type: [clearSchema], default: [] },
   },
   { timestamps: true }
 );

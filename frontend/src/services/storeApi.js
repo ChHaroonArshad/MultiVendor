@@ -40,3 +40,6 @@ export async function getPublicStores({ limit = 8 } = {}) {
 export async function getPublicStore(id) {
   return parseOrThrow(await apiFetch(`/stores/${id}`), "Failed to load store");
 }
+export async function getStoreStatus() {
+  return parseOrThrow(await apiFetch("/seller/store/status"), "Failed to load store status");
+}

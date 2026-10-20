@@ -15,7 +15,7 @@ export function Navbar() {
   return (
     <header className="border-b border-[#E5E5E5] bg-white/80 backdrop-blur sticky top-0 z-20">
       <div className="max-w-6xl mx-auto px-4 sm:px-8 h-16 flex items-center justify-between">
-        <Link to="/" className="font-serif text-lg text-[#111111] tracking-tight">
+        <Link to="/" className="font-serif text-lg text-[#111111] tracking-tight cursor-pointer">
           Marketplace
         </Link>
 
@@ -25,7 +25,7 @@ export function Navbar() {
             !isOnOwnDashboard && (
               <Link
                 to={getHomeForRole(user.role)}
-                className="bg-[#111111] text-white px-5 py-2 rounded-full text-sm font-medium transition-all duration-200 hover:opacity-90 hover:-translate-y-0.5"
+                className="bg-[#111111] cursor-pointer text-white px-5 py-2 rounded-full text-sm font-medium transition-all duration-200 hover:opacity-90 hover:-translate-y-0.5"
               >
                 Open Dashboard
               </Link>
@@ -34,12 +34,12 @@ export function Navbar() {
             // Logged out: skip sign-in/sign-up links on the auth pages themselves
             !isOnGuestAuthPage && (
               <>
-                <Link to="/login" className="text-sm text-[#6B6B6B] hover:text-[#111111] transition-colors">
+                <Link to="/login" className="text-sm text-[#6B6B6B] hover:text-[#111111] transition-colors cursor-pointer">
                   Sign in
                 </Link>
                 <Link
                   to="/register"
-                  className="bg-[#111111] text-white px-5 py-2 rounded-full text-sm font-medium transition-all duration-200 hover:opacity-90 hover:-translate-y-0.5"
+                  className="bg-[#111111] text-white px-5 py-2 cursor-pointer rounded-full text-sm font-medium transition-all duration-200 hover:opacity-90 hover:-translate-y-0.5"
                 >
                   Create account
                 </Link>
@@ -47,10 +47,10 @@ export function Navbar() {
             )
 
           )}
-          <button onClick={openDrawer} aria-label="Cart" className="relative w-10 h-10 rounded-full flex items-center justify-center text-[#6B6B6B] hover:bg-[#FAFAFA] hover:text-[#111111] transition-colors">
+          <button onClick={openDrawer} aria-label="Cart" className=" cursor-pointer relative w-10 h-10 rounded-full flex items-center justify-center text-[#6B6B6B] hover:bg-[#FAFAFA] hover:text-[#111111] transition-colors">
             🛍️
             {totalCount > 0 && (
-              <span className="absolute top-1 right-1 w-4 h-4 text-[10px] bg-[#C9A227] text-white rounded-full flex items-center justify-center animate-badge-pop">
+              <span className="absolute top-1 right-1 w-4 h-4 text-[10px] bg-[#C9A227] cursor-pointer text-white rounded-full flex items-center justify-center animate-badge-pop">
                 {totalCount}
               </span>
             )}

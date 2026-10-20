@@ -113,7 +113,7 @@ export function NotificationBell() {
           <Link
             to={getNotificationsPath(user?.role)}
             onClick={close}
-            className="block text-center text-xs font-medium text-[#111111] py-3 border-t border-[#E5E5E5] hover:bg-[#FAFAFA] transition-colors"
+            className="cursor-pointer block text-center text-xs font-medium text-[#111111] py-3 border-t border-[#E5E5E5] hover:bg-[#FAFAFA] transition-colors"
           >
             View all notifications
           </Link>

@@ -133,6 +133,7 @@ await Promise.all([
   Cart.deleteMany({ user: user._id }),
   RefreshToken.deleteMany({ user: user._id }),
   Notification.deleteMany({ user: user._id }),
+  WishlistItem.deleteMany({ user: user._id }),
 ]);
   await safeDelete(user.avatarPublicId);
 

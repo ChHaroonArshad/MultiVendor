@@ -6,7 +6,7 @@ import { handleProductImagesUpload } from "../middleware/uploadMiddleware.js";
 import { createProductLimiter } from "../middleware/rateLimitMiddleware.js";
 import { createProductSchema, updateProductSchema, publishSchema } from "../validators/productValidator.js";
 import * as productController from "../controllers/productController.js";
-
+import { requireCompleteStore } from "../middleware/requireCompleteStore.js";
 const router = Router();
 
 router.get("/", authMiddleware, roleMiddleware(["seller"]), productController.getMyProducts);
@@ -17,6 +17,7 @@ router.post(
   createProductLimiter,
   authMiddleware,
   roleMiddleware(["seller"]),
+    requireCompleteStore,
   handleProductImagesUpload,
   validateMiddleware(createProductSchema),
   productController.createProduct

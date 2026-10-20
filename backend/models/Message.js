@@ -5,7 +5,6 @@ const imageSchema = new mongoose.Schema(
   { _id: false }
 );
 
-// A snapshot taken at send time, so a card still makes sense after the product/order changes.
 const contextSchema = new mongoose.Schema(
   {
     kind: { type: String, enum: ["product", "order"], required: true },
@@ -14,6 +13,11 @@ const contextSchema = new mongoose.Schema(
     subtitle: { type: String, default: "" },
     image: { type: String, default: "" },
   },
+  { _id: false }
+);
+
+const editSchema = new mongoose.Schema(
+  { text: { type: String, default: "" }, at: { type: Date, required: true } },
   { _id: false }
 );
 
@@ -26,8 +30,11 @@ const messageSchema = new mongoose.Schema(
     text: { type: String, default: "", maxlength: 2000 },
     image: { type: imageSchema, default: undefined },
     context: { type: contextSchema, default: undefined },
-    clientId: { type: String, default: undefined }, // idempotency key from the sending browser
-    readAt: { type: Date, default: null },          // read by the OTHER side
+    clientId: { type: String, default: undefined },
+    deliveredAt: { type: Date, default: null }, // the other side's device received it
+    readAt: { type: Date, default: null },      // the other side opened it
+    editedAt: { type: Date, default: null },
+    editHistory: { type: [editSchema], default: [] }, // previous versions, kept so edits can't hide evidence
     deletedAt: { type: Date, default: null },
   },
   { timestamps: { createdAt: true, updatedAt: false } }
@@ -38,5 +45,7 @@ messageSchema.index(
   { conversation: 1, clientId: 1 },
   { unique: true, partialFilterExpression: { clientId: { $type: "string" } } }
 );
+// A deleted message keeps its TEXT for 30 days so moderators can still see evidence, then it is removed.
+messageSchema.index({ deletedAt: 1 }, { expireAfterSeconds: 60 * 60 * 24 * 30 });
 
 export const Message = mongoose.model("Message", messageSchema);

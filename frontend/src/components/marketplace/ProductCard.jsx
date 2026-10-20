@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useCart } from "../../hooks/useCart";
 import { Icon, SmartImage } from "./marketplaceUi";
 import { getCategoryLabel, shouldContain } from "../../data/homeContent";
-
+import { WishlistButton } from "../wishlist/WishlistButton";
 export function ProductCard({ product, guard }) {
   const { addItem } = useCart();
   const navigate = useNavigate();
@@ -30,33 +30,28 @@ export function ProductCard({ product, guard }) {
       className="group h-full flex flex-col cursor-pointer rounded-2xl overflow-hidden bg-white border border-[#E8E5DF] transition-all duration-300 hover:-translate-y-0.5 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C9A227]/40"
     >
       <div className="relative aspect-square overflow-hidden bg-[#F6F4F0]">
+
         <SmartImage
           src={product.image}
           alt={product.name}
-          className={`w-full h-full transition-transform duration-500 group-hover:scale-105 ${
-            contain ? " object-contain p-4 mix-blend-multiply" : "object-cover"
-          }`}
+          className={`w-full h-full transition-transform duration-500 group-hover:scale-105 ${contain ? " object-contain p-4 mix-blend-multiply" : "object-cover"
+            }`}
         />
         {discount > 0 && (
           <span className="absolute top-3 left-3 text-[10px] font-medium tracking-wide bg-[#C9A227] text-white px-2 py-1 rounded-full">
             -{discount}%
           </span>
         )}
-        <button
-          onClick={(e) => { e.stopPropagation(); setWishlisted((v) => !v); }}
-          aria-label={wishlisted ? "Remove from wishlist" : "Add to wishlist"}
-          aria-pressed={wishlisted}
-          className={`absolute top-3 right-3 w-8 h-8 rounded-full bg-white/95 border border-[#E8E5DF] flex items-center justify-center transition-colors ${
-            wishlisted ? "text-[#C9A227]" : "text-[#6B6B6B] hover:text-[#C9A227]"
-          }`}
-        >
-          <Icon name="heart" size={15} fill={wishlisted ? "currentColor" : "none"} />
-        </button>
+        <WishlistButton
+          product={product}
+          guard={guard}
+          className="absolute top-3 right-3 z-10"
+        />
       </div>
 
       <div className="flex flex-col flex-1 p-4">
         <p className="text-[10px] uppercase tracking-[0.14em] text-[#9A968D] mb-1.5">{categoryLabel}</p>
-        <p title={product.name} className="text-sm font-medium text-[#111111] leading-snug line-clamp-2 min-h-[2.5rem]">
+        <p title={product.name} className="text-sm font-medium text-[rgb(17,17,17)] leading-snug line-clamp-2 min-h-[2.5rem]">
           {product.name}
         </p>
 

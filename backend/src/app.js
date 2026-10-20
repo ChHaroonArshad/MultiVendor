@@ -29,9 +29,11 @@ import supportRoutes from "../routes/supportRoutes.js";
 import adminReportRoutes from "../routes/adminReportRoutes.js";
 import publicStatsRoutes from "../routes/publicStatsRoutes.js";
 
+import adminChatRoutes from "../routes/adminChatRoutes.js";
 
 
 
+import wishlistRoutes from "../routes/wishlistRoutes.js";
 
 
 
@@ -65,13 +67,14 @@ app.use("/api/v1/seller/orders", sellerOrderRoutes);
 app.use("/api/v1/admin/orders", adminOrderRoutes);
 app.use("/api/v1/admin/users", adminUserRoutes);
 app.use("/api/v1/admin/overview", adminOverviewRoutes);
+app.use("/api/v1/admin/chat", adminChatRoutes);
 app.use("/api/v1/notifications", notificationRoutes);
 
 app.use("/api/v1/seller/store", sellerStoreRoutes);
 app.use("/api/v1/stores", publicStoreRoutes);
 
 app.use("/api/v1/account", accountRoutes);
-
+app.use("/api/v1/wishlist", wishlistRoutes);
 app.use("/api/v1/seller/overview", sellerOverviewRoutes);
 app.use("/api/v1/customer/overview", customerOverviewRoutes);
 app.use("/api/v1/auth", authRoutes);

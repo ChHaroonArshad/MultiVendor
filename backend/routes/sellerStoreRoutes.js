@@ -10,7 +10,7 @@ import * as storeController from "../controllers/storeController.js";
 const router = Router();
 
 router.use(authMiddleware, roleMiddleware(["seller"]));
-
+router.get("/status", storeController.getStoreStatus);
 router.get("/", storeController.getMyStore);
 router.patch("/", validateMiddleware(updateStoreSchema), storeController.updateMyStore);
 router.post("/image/:kind", avatarUploadLimiter, handleStoreImageUpload, storeController.uploadStoreImage);

@@ -8,7 +8,10 @@ const ChatContext = createContext(null);
 
 // VITE_API_URL ends in /api/v1, the socket lives on the same origin.
 const SOCKET_URL = new URL(import.meta.env.VITE_API_URL, window.location.origin).origin;
-const EVENTS = ["message:new", "messages:read", "message:deleted", "conversation:update", "presence:update", "typing"];
+const EVENTS = [
+  "message:new", "messages:read", "messages:delivered", "message:deleted", "message:edited",
+  "conversation:update", "conversation:removed", "presence:update", "typing",
+];
 
 export function ChatProvider({ children }) {
   const { user } = useAuth();
@@ -61,7 +64,7 @@ export function ChatProvider({ children }) {
     EVENTS.forEach((event) => {
       socket.on(event, (payload) => {
         listenersRef.current.get(event)?.forEach((handler) => handler(payload));
-        if (event === "message:new" || event === "messages:read" || event === "message:deleted") refreshUnread();
+       if (["message:new", "messages:read", "message:deleted", "conversation:removed"].includes(event)) refreshUnread();
       });
     });
 

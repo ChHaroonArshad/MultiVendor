@@ -9,7 +9,7 @@ import { Card, CardHeader, StatCard, ErrorBox, DashboardSkeleton } from "../../c
 import { OrderStatusBadge } from "../../components/seller/OrderStatusBadge";
 import { Icon, SmartImage } from "../../components/marketplace/marketplaceUi";
 import { formatPrice } from "../../utils/formatPrice";
-import { getRecentlyViewed } from "../../utils/recentlyViewed";
+import { useRecentlyViewed } from "../../hooks/useRecentlyViewed";
 
 const STATUS_COLORS = { processing: "#C9A227", shipped: "#2A5DB0", delivered: "#2E7D32", cancelled: "#C0392B" };
 
@@ -74,7 +74,7 @@ export function CustomerOverviewPage() {
 
 function CustomerContent({ data, openCart }) {
   const { stats, spending, statusBreakdown, recentOrders, onTheWay, awaitingPayment } = data;
-  const recentlyViewed = getRecentlyViewed().slice(0, 6);
+const { items: recentlyViewed } = useRecentlyViewed(6);
 
   const spendData = spending.map((m) => ({ key: m.key, label: m.label, title: m.title, value: m.spent, detail: m.orders }));
   const spark = spending.map((m) => m.spent);

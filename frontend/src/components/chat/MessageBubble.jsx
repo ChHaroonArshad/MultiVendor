@@ -3,33 +3,42 @@ import { ContextCard } from "./ContextCard";
 import { LinkifiedText } from "./LinkifiedText";
 import { formatTime } from "../../utils/chatUtils";
 
+// 1 grey tick = sent, 2 grey = delivered, 2 gold = seen
 function Ticks({ message }) {
   if (message.pending) {
     return (
-      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#B0B0B0" strokeWidth="2.5" strokeLinecap="round">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" aria-label="Sending">
         <circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 2" />
       </svg>
     );
   }
-  const color = message.readAt ? "#C9A227" : "#B0B0B0";
+  const seen = Boolean(message.readAt);
+  const delivered = seen || Boolean(message.deliveredAt);
   return (
-    <svg width="16" height="12" viewBox="0 0 28 24" fill="none" stroke={color} strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" aria-label={message.readAt ? "Seen" : "Sent"}>
+    <svg width="16" height="12" viewBox="0 0 28 24" fill="none" stroke={seen ? "#C9A227" : "#9AA0A8"} strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" aria-label={seen ? "Seen" : delivered ? "Delivered" : "Sent"}>
       <path d="M2 13l5 5L17 6" />
-      {message.readAt && <path d="M12 16l2 2L26 6" />}
+      {delivered && <path d="M12 16l2 2L26 6" />}
     </svg>
   );
 }
 
-export function MessageBubble({ message, mine, first, last, nameLabel, viewerRole, canDelete, onDelete, onRetry, onOpenImage }) {
+export function MessageBubble({ message, mine, first, last, nameLabel, moderator, viewerRole, canEdit, canDelete, onEdit, onDelete, onRetry, onOpenImage }) {
   const deleted = message.deleted;
   const hasImage = Boolean(message.image) && !deleted;
+  const darkBubble = mine && !deleted && !moderator;
 
   const tone = deleted
     ? "bg-transparent text-[#B0B0B0] border border-dashed border-[#D9D9D9]"
+    : moderator
+    ? "bg-[#FBF6E9] text-[#111111] border border-[#C9A227]/40"
     : mine
     ? "bg-[#111111] text-white"
     : "bg-white text-[#111111] border border-[#E5E5E5]";
   const corner = last ? (mine ? "rounded-br-md" : "rounded-bl-md") : "";
+
+  const menuItems = [];
+  if (canEdit) menuItems.push({ key: "edit", label: "Edit message", onClick: () => onEdit(message) });
+  if (canDelete) menuItems.push({ key: "delete", label: "Delete message", danger: true, onClick: () => onDelete(message) });
 
   return (
     <div className={`group flex ${mine ? "justify-end" : "justify-start"} ${first ? "mt-3" : "mt-0.5"} ${message.isNew ? "chat-msg-in" : ""}`}>
@@ -37,16 +46,13 @@ export function MessageBubble({ message, mine, first, last, nameLabel, viewerRol
         {nameLabel && <span className="text-[11px] text-[#6B6B6B] mb-1 mx-1">{nameLabel}</span>}
 
         <div className="flex items-center gap-1">
-          {mine && canDelete && !deleted && (
-            <div className="md:opacity-0 md:group-hover:opacity-100 transition-opacity">
-              <RowActionsMenu
-                label="Message actions"
-                items={[{ key: "delete", label: "Delete message", danger: true, onClick: () => onDelete(message) }]}
-              />
+          {mine && !deleted && menuItems.length > 0 && (
+            <div className="md:opacity-0 md:group-hover:opacity-100 focus-within:opacity-100 transition-opacity">
+              <RowActionsMenu label="Message actions" items={menuItems} />
             </div>
           )}
 
-          <div className={`${tone} rounded-2xl ${corner} px-3.5 py-2 text-sm leading-relaxed shadow-sm transition-opacity ${message.pending ? "opacity-70" : ""} ${message.failed ? "ring-1 ring-red-300" : ""}`}>
+          <div className={`${tone} rounded-2xl ${corner} px-3.5 pt-2 pb-1.5 text-sm leading-relaxed shadow-sm transition-opacity ${message.pending ? "opacity-70" : ""} ${message.failed ? "ring-1 ring-red-300" : ""}`}>
             {message.context && <ContextCard context={message.context} viewerRole={viewerRole} />}
 
             {hasImage && (
@@ -60,24 +66,25 @@ export function MessageBubble({ message, mine, first, last, nameLabel, viewerRol
             ) : (
               message.text && (
                 <p className="whitespace-pre-wrap break-words">
-                  <LinkifiedText text={message.text} linkClass={mine ? "text-[#E8CF7A]" : "text-[#8a6f14]"} />
+                  <LinkifiedText text={message.text} linkClass={darkBubble ? "text-[#E8CF7A]" : "text-[#8a6f14]"} />
                 </p>
               )
+            )}
+
+            {!deleted && (
+              <span className={`flex items-center justify-end gap-1 mt-0.5 text-[10px] ${darkBubble ? "text-white/60" : "text-[#B0B0B0]"}`}>
+                {message.edited && <span>edited</span>}
+                {formatTime(message.createdAt)}
+                {mine && !moderator && <Ticks message={message} />}
+              </span>
             )}
           </div>
         </div>
 
-        {message.failed ? (
+        {message.failed && (
           <button type="button" onClick={() => onRetry(message)} className="text-[11px] text-red-500 mt-1 mx-1 hover:underline">
             Failed to send · Retry
           </button>
-        ) : (
-          last && (
-            <span className="flex items-center gap-1 text-[11px] text-[#B0B0B0] mt-1 mx-1">
-              {formatTime(message.createdAt)}
-              {mine && !deleted && <Ticks message={message} />}
-            </span>
-          )
         )}
       </div>
     </div>

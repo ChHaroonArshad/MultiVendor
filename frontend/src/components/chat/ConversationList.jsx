@@ -1,3 +1,4 @@
+import { useEffect, useRef } from "react";
 import { ChatAvatar } from "./ChatAvatar";
 import { Spinner } from "../ui/Spinner";
 import { formatListTime } from "../../utils/chatUtils";
@@ -24,25 +25,29 @@ function SkeletonRow() {
 }
 
 export function ConversationList({
-  conversations, loading, activeId, onSelect, searchInput, onSearchChange, onClearSearch,
+  conversations, loading, hasLoaded, activeId, onSelect, searchInput, onSearchChange, onClearSearch, search,
   canContactSupport, onContactSupport, contacting, hasMore, loadingMore, onLoadMore, totalUnread, emptyHint,
 }) {
+  const listRef = useRef(null);
+
+  // a new search starts from the top instead of keeping a random old scroll position
+  useEffect(() => {
+    listRef.current?.scrollTo({ top: 0 });
+  }, [search]);
+
+  const firstLoad = loading && !hasLoaded;
+  const refreshing = loading && hasLoaded;
+
   return (
     <div className="flex flex-col h-full">
       <div className="px-5 pt-5 pb-3">
         <div className="flex items-center justify-between gap-2 mb-4">
           <h2 className="text-xl font-serif text-[#111111] flex items-center gap-2">
             Messages
-            {totalUnread > 0 && (
-              <span key={totalUnread} className="chat-pop text-[11px] font-sans bg-[#C9A227] text-white rounded-full px-2 py-0.5">{totalUnread}</span>
-            )}
+            {totalUnread > 0 && <span key={totalUnread} className="chat-pop text-[11px] font-sans bg-[#C9A227] text-white rounded-full px-2 py-0.5">{totalUnread}</span>}
           </h2>
           {canContactSupport && (
-            <button
-              onClick={onContactSupport}
-              disabled={contacting}
-              className="text-xs font-medium border border-[#E5E5E5] rounded-full px-3.5 py-1.5 hover:border-[#C9A227]/60 hover:-translate-y-0.5 transition-all disabled:opacity-50 flex items-center gap-1.5"
-            >
+            <button onClick={onContactSupport} disabled={contacting} className="text-xs font-medium border border-[#E5E5E5] rounded-full px-3.5 py-1.5 hover:border-[#C9A227]/60 hover:-translate-y-0.5 transition-all disabled:opacity-50 flex items-center gap-1.5">
               {contacting && <Spinner size={11} />}
               Contact support
             </button>
@@ -53,23 +58,28 @@ export function ConversationList({
           <input
             value={searchInput}
             onChange={onSearchChange}
-            placeholder="Search conversations..."
-            className="w-full pl-4 pr-9 py-2.5 rounded-full border border-[#E5E5E5] bg-[#FAFAFA] text-sm placeholder:text-[#B0B0B0] focus:outline-none focus:ring-2 focus:ring-[#C9A227]/15 focus:border-[#C9A227] focus:bg-white transition-all"
+            placeholder="Search by name..."
+            className="w-full pl-4 pr-16 py-2.5 rounded-full border border-[#E5E5E5] bg-[#FAFAFA] text-sm placeholder:text-[#B0B0B0] focus:outline-none focus:ring-2 focus:ring-[#C9A227]/15 focus:border-[#C9A227] focus:bg-white transition-all"
           />
-          {searchInput && (
-            <button onClick={onClearSearch} aria-label="Clear search" className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-[#B0B0B0] hover:text-[#111111]">✕</button>
-          )}
+          <span className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-2">
+            {refreshing && <Spinner size={12} className="text-[#B0B0B0]" />}
+            {searchInput && <button onClick={onClearSearch} aria-label="Clear search" className="text-xs text-[#B0B0B0] hover:text-[#111111]">✕</button>}
+          </span>
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto chat-scroll px-2 pb-3">
-        {loading && conversations.length === 0 && [0, 1, 2, 3, 4].map((i) => <SkeletonRow key={i} />)}
+      <div
+        ref={listRef}
+        className={`flex-1 overflow-y-auto chat-scroll px-2 pb-3 transition-opacity duration-200 ${refreshing ? "opacity-60" : "opacity-100"}`}
+        style={{ overflowAnchor: "none" }}
+      >
+        {firstLoad && [0, 1, 2, 3, 4].map((i) => <SkeletonRow key={i} />)}
 
-        {!loading && conversations.length === 0 && (
-          <div className="chat-slide-up text-center px-6 py-14">
-            <div className="chat-bob text-4xl mb-3">💬</div>
-            <p className="text-sm font-medium text-[#111111] mb-1">{searchInput ? "No conversations found" : "No conversations yet"}</p>
-            <p className="text-xs text-[#6B6B6B]">{searchInput ? "Try a different name." : emptyHint}</p>
+        {hasLoaded && conversations.length === 0 && !loading && (
+          <div className="text-center px-6 py-14">
+            <div className={`text-4xl mb-3 ${search ? "" : "chat-bob"}`}>{search ? "🔍" : "💬"}</div>
+            <p className="text-sm font-medium text-[#111111] mb-1">{search ? "No conversations found" : "No conversations yet"}</p>
+            <p className="text-xs text-[#6B6B6B]">{search ? "Try a different name." : emptyHint}</p>
           </div>
         )}
 
@@ -79,8 +89,8 @@ export function ConversationList({
             <button
               key={c._id}
               onClick={() => onSelect(c._id)}
-              className={`chat-slide-up w-full flex items-center gap-3 px-3 py-3 rounded-2xl text-left transition-all duration-200 ${active ? "bg-[#FBF6E9] shadow-sm" : "hover:bg-[#FAFAFA]"}`}
-              style={{ animationDelay: `${Math.min(i, 8) * 35}ms` }}
+              className={`${hasLoaded && !search ? "" : "chat-slide-up"} w-full flex items-center gap-3 px-3 py-3 rounded-2xl text-left transition-colors duration-200 ${active ? "bg-[#FBF6E9] shadow-sm" : "hover:bg-[#FAFAFA]"}`}
+              style={!hasLoaded ? { animationDelay: `${Math.min(i, 8) * 35}ms` } : undefined}
             >
               <ChatAvatar counterpart={c.counterpart} size={46} />
               <span className="min-w-0 flex-1">
