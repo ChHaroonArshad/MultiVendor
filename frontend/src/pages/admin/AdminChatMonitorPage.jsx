@@ -101,7 +101,7 @@ export function AdminChatMonitorPage() {
               <option value="all">All reports</option>
             </select>
           ) : (
-            <div className="flex gap-2">
+            <div className="flex gap-2 hidden">
               <input
                 value={searchInput}
                 onChange={(e) => { setSearchInput(e.target.value); applySearch(e.target.value); }}

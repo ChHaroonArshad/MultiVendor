@@ -389,10 +389,10 @@ export function AdminChatViewer({ conversationId, onBack, onChanged }) {
         {error && !needReason && !granted && <p className="absolute inset-0 flex items-center justify-center text-sm text-red-600">{error}</p>}
       </div>
 
-      <div className="border-t border-[#E5E5E5] bg-white px-3 sm:px-4 py-3">
-        <p className="text-[11px] text-[#8a6f14] mb-1.5">Both people will see your message as “Marketplace Support”.</p>
+      <div className="border-t border-[#E5E5E5] bg-white px-3 sm:px-4 py-3 ">
+        <p className="text-[11px] text-[#8a6f14] mb-1.5">"You can only read the messages from both sides”</p>
         <div className="flex items-end gap-2">
-          <textarea
+          {/* <textarea
             value={draft}
             onChange={(e) => setDraft(e.target.value)}
             onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSend(); } }}
@@ -401,10 +401,10 @@ export function AdminChatViewer({ conversationId, onBack, onChanged }) {
             disabled={!granted}
             placeholder={granted ? "Write to both parties as mediator..." : "Open the conversation first"}
             className="flex-1 resize-none px-4 py-2.5 rounded-2xl border border-[#E5E5E5] bg-[#FAFAFA] text-sm focus:outline-none focus:ring-2 focus:ring-[#C9A227]/15 focus:border-[#C9A227] focus:bg-white max-h-28 disabled:opacity-50"
-          />
-          <button onClick={handleSend} disabled={!granted || !draft.trim() || sending} className="shrink-0 h-10 px-5 rounded-full bg-[#111111] text-white text-sm font-medium hover:opacity-90 disabled:opacity-40 flex items-center gap-2">
+          /> */}
+          {/* <button onClick={handleSend} disabled={!granted || !draft.trim() || sending} className="shrink-0 h-10 px-5 rounded-full bg-[#111111] text-white text-sm font-medium hover:opacity-90 disabled:opacity-40 flex items-center gap-2">
             {sending && <Spinner size={12} />} Send
-          </button>
+          </button> */}
         </div>
       </div>
 
